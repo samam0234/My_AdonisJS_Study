@@ -1,0 +1,57 @@
+name: adonis-study
+x-app: &app
+  image: ${APP_IMAGE:-adonis-study:local}
+  env_file: demo/.env
+  environment:
+    NODE_ENV: production
+    HOST: 0.0.0.0
+    PORT: 3333
+    APP_URL: ${PUBLIC_URL:-http://localhost:3360}
+    DB_CONNECTION: pg
+    DB_HOST: db
+    DB_PORT: 5432
+    DB_DATABASE: adonis
+    DB_USER: adonis
+    DB_PASSWORD: ${POSTGRES_PASSWORD:-adonis-local-only}
+    DB_SSL: 'false'
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: adonis
+      POSTGRES_USER: adonis
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-adonis-local-only}
+    volumes: [pg-data:/var/lib/postgresql/data]
+    healthcheck:
+      test: [CMD-SHELL, 'pg_isready -U adonis -d adonis']
+      interval: 3s
+      timeout: 3s
+      retries: 15
+  migrate:
+    <<: *app
+    command: [node, ace, 'migration:run', --force]
+    depends_on:
+      db:
+        condition: service_healthy
+  web:
+    <<: *app
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    ports: ['127.0.0.1:3360:3333']
+    healthcheck:
+      test: [CMD, node, -e, "fetch('http://127.0.0.1:3333/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 4s
+      retries: 5
+    restart: unless-stopped
+  mail-worker:
+    <<: *app
+    profiles: [mail]
+    command: [node, ace, 'mail:work', --watch]
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    restart: unless-stopped
+volumes:
+  pg-data:

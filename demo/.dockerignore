@@ -1,0 +1,9 @@
+node_modules
+.adonisjs
+build
+.env*
+!.env.example
+tmp/*
+!tmp/.gitkeep
+coverage
+*.log
