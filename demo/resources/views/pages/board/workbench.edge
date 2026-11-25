@@ -1,0 +1,31 @@
+@component('components/layouts/board', { title: 'AI 작업실' })
+  <h1>AI 작업실</h1>
+  <p>게시글을 문서로 사용해 요약하거나 근거가 있는 답변을 확인합니다.</p>
+  @if(auth.user)
+    <form method="post" action="/workbench/upload" enctype="multipart/form-data">
+      {{ csrfField() }}
+      <label>게시판에 공개할 문서 <input type="file" name="document" accept=".txt,.md" required></label>
+      <button>게시글로 가져오기</button>
+    </form>
+    <form action="/workbench/chat" method="post" data-chat x-data="documentQuestion">
+      {{ csrfField() }}
+      <label>글 번호 <input name="postId" type="number" min="1" required></label>
+      <label>질문 <textarea name="question" maxlength="1000" required x-model="question"></textarea></label>
+      <small><span x-text="question.length">0</span> / 1000자</small>
+      <button>답변 받기</button>
+    </form>
+    <p data-answer role="status" class="study-body"></p>
+    <a href="/workbench/history">내 질문 기록 (JSON)</a>
+    <form method="post" action="/workbench/mail">
+      {{ csrfField() }}
+      <button>내 주소로 테스트 메일 예약</button>
+    </form>
+    <form method="post" action="/workbench/checkout">
+      {{ csrfField() }}
+      <button>Stripe 테스트 결제</button>
+    </form>
+  @else
+    <a href="/login">작업실에 로그인하기</a>
+    <a href="/oauth/github">GitHub 계정으로 로그인하기</a>
+  @endif
+@end
