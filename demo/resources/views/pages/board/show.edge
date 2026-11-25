@@ -1,0 +1,44 @@
+@component('components/layouts/board', { title: post.title })
+  <h1>{{ post.title }}</h1>
+  @if(flashMessages.has('draftSaved'))
+    <p data-draft-saved role="status">글을 등록했습니다.</p>
+  @end
+  <p>{{ post.user.fullName ?? post.user.email.split('@')[0] }}</p>
+  <p class="study-body">{{ post.body }}</p>
+  @if(canEdit)
+    <form action="/board/{{ post.id }}/edit" method="post">
+      {{ csrfField() }}
+      <label>제목 <input name="title" value="{{ old('title', post.title) }}" maxlength="200" required></label>
+      @inputError('title')
+        <p role="alert">{{ $message }}</p>
+      @end
+      <label>본문 <textarea name="body" maxlength="20000" required>{{ old('body', post.body) }}</textarea></label>
+      @inputError('body')
+        <p role="alert">{{ $message }}</p>
+      @end
+      <button>수정</button>
+    </form>
+    <form action="/board/{{ post.id }}/delete" method="post">{{ csrfField() }}<button>글 삭제</button></form>
+  @endif
+  <h2>댓글</h2>
+  <ul>
+    @each(item in comments)
+      <li>
+        <p>{{ item.comment.user.fullName ?? item.comment.user.email.split('@')[0] }} · {{ item.comment.body }}</p>
+        @if(item.canDelete)
+          <form action="/board/comments/{{ item.comment.id }}/delete" method="post">{{ csrfField() }}<button>댓글 삭제</button></form>
+        @endif
+      </li>
+    @end
+  </ul>
+  @if(auth.user)
+    <form action="/board/{{ post.id }}/comments" method="post">
+      {{ csrfField() }}
+      <label>댓글 <textarea name="body" maxlength="2000" required></textarea></label>
+      @inputError('body')
+        <p role="alert">{{ $message }}</p>
+      @end
+      <button>댓글 등록</button>
+    </form>
+  @endif
+@end
