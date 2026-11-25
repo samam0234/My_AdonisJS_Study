@@ -6,127 +6,62 @@
 
 ## ② 📖 이론
 
-기능은 회원가입·로그인·로그아웃, 글 목록·검색·상세·등록·수정·삭제, 댓글 목록·작성·삭제, 작성자 권한, v1 API다. 이 시점의 구현 순서는 SQLite 마이그레이션 → 세션과 Bearer → 입력 검증 → Edge/JSON 라우트 → 테스트와 빌드다. 로그인 여부와 데이터의 변경 권한을 분리하면 공개 화면과 보호된 관리 동작을 같은 앱에서 구성할 수 있다.
+### 기능 목록
+
+- 회원가입·로그인·로그아웃
+- 게시글 목록·검색·상세·등록·수정·삭제
+- 댓글 목록·작성·삭제와 콘텐츠별 작성자 권한
+- 공통 API v1의 게시글·댓글 응답과 세션 기반 Edge 화면
+
+로그인 여부와 데이터의 변경 권한을 분리하면 공개 화면과 보호된 관리 동작을 같은 앱에서 구성할 수 있다.
 
 [공식·원문 참고](https://app.notion.com/p/41fd7dec5e2e81b1a18fcf3a82d793d4)
 
 ## ③ 🛠️ 실기
 
-폴더 구조는 `demo/start/routes.ts` → `demo/app/controllers/` → `demo/app/services/`와 `demo/app/models/` → `demo/database/migrations/`이며 화면은 `demo/resources/views/pages/board/`다. `study0`으로 실행한 다음 로그인·글·댓글을 두 사용자로 실습한다. 이 단계는 `/board`와 `/api/posts`를 완성하는 데 필요한 초기 DB·인증·화면만 사용한다.
+### 폴더 구조
 
-1. 1차 배포 순서는 APP_KEY 준비 → SQLite 또는 운영 DB 마이그레이션 → Vite/TS 빌드 → HTTPS → 실측 점검이다.
-2. 회고에서는 데이터 공유로 줄어든 중복과 브라우저 폼/JSON API의 서로 다른 오류 처리를 기록한다.
+```text
+demo/
+├── start/                    라우트와 HTTP 미들웨어
+├── app/controllers/          게시글 화면·API·회원 인증
+├── app/models/               글·댓글·사용자
+├── database/migrations/      초기 SQLite 스키마
+└── resources/views/          Edge 게시판과 인증 폼
+```
 
-### [`demo/app/controllers/board_controller.ts`](demo/app/controllers/board_controller.ts)
+### 단계별 구현 순서
+
+1. [study0](study0.md)의 명령으로 SQLite 앱을 준비하고 [study6](study6.md)의 마이그레이션으로 게시글·댓글 테이블을 만든다.
+2. [study2](study2.md)의 MVC 구조대로 Post와 Comment를 만들고, [study4](study4.md)의 `/board`, `/board/:id`, `/api/posts` 경로를 연결한다.
+3. [study5](study5.md)의 Vine 검증으로 글과 댓글을 검증하고, [study7](study7.md)의 세션·Bearer와 Bouncer 권한을 붙인다.
+4. 아래 Edge 상세 뷰를 렌더링하고 두 사용자로 글·댓글 CRUD를 점검한다. [study9](study9.md)의 요청 테스트를 실행한다.
+5. [study10](study10.md)의 명령으로 빌드한다. 중간 응용 확인은 `/board`와 공통 v1 게시판 API에서 진행한다.
+
+### [`demo/app/models/post.ts`](demo/app/models/post.ts)
 
 ```ts
-import type { HttpContext } from '@adonisjs/core/http'
-import { Bouncer } from '@adonisjs/bouncer'
-import { errors } from '@vinejs/vine'
-import { manageContent } from '#abilities/board'
-import Post from '#models/post'
+import { PostSchema } from '#database/schema'
+import User from '#models/user'
 import Comment from '#models/comment'
-import { parseId, parseList } from '#services/board_contract'
-import { invalidatePostLists, listPosts, postQuery } from '#services/posts'
-import { publishBoardChange } from '#services/board_events'
-import { createComment, createPost } from '#validators/board'
+import { belongsTo, hasMany } from '@adonisjs/lucid/orm'
+import type { BelongsTo, HasMany } from '@adonisjs/lucid/types/relations'
 
-export default class BoardController {
-  async index({ request, view }: HttpContext) {
-    const result = await listPosts(parseList(request.qs()))
-    return view.render('pages/board/index', result)
-  }
+export default class Post extends PostSchema {
+  @belongsTo(() => User)
+  declare user: BelongsTo<typeof User>
 
-  async show({ params, view, auth }: HttpContext) {
-    const post = await postQuery().where('id', parseId(params.id)).firstOrFail()
-    const comments = await post.related('comments').query().preload('user').orderBy('id')
-    const bouncer = new Bouncer(() => auth.user ?? null)
-    return view.render('pages/board/show', {
-      post,
-      canEdit: await bouncer.allows(manageContent, post),
-      comments: await Promise.all(
-        comments.map(async (comment) => ({
-          comment,
-          canDelete: await bouncer.allows(manageContent, comment),
-        }))
-      ),
-    })
-  }
-
-  async store({ auth, request, response, session }: HttpContext) {
-    const { title, body } = await request.validateUsing(createPost)
-    const post = await Post.create({
-      title,
-      body,
-      tagsJson: '[]',
-      userId: auth.getUserOrFail().id,
-    })
-    session.flash('draftSaved', true)
-    invalidatePostLists()
-    publishBoardChange()
-    return response.redirect().toPath('/board/' + post.id)
-  }
-
-  async update({ auth, params, request, response }: HttpContext) {
-    const post = await Post.findOrFail(parseId(params.id))
-    await new Bouncer(() => auth.getUserOrFail()).authorize(manageContent, post)
-    const { title, body } = await request.validateUsing(createPost)
-    await post.merge({ title, body }).save()
-    invalidatePostLists()
-    publishBoardChange()
-    return response.redirect().toPath('/board/' + post.id)
-  }
-
-  async destroy({ auth, params, response }: HttpContext) {
-    const post = await Post.findOrFail(parseId(params.id))
-    await new Bouncer(() => auth.getUserOrFail()).authorize(manageContent, post)
-    await post.delete()
-    invalidatePostLists()
-    publishBoardChange()
-    return response.redirect().toPath('/board')
-  }
-
-  async addComment({ auth, params, request, response }: HttpContext) {
-    const post = await Post.findOrFail(parseId(params.id))
-    const { body } = await request.validateUsing(createComment)
-    await post.related('comments').create({ body, userId: auth.getUserOrFail().id })
-    invalidatePostLists()
-    publishBoardChange()
-    return response.redirect().toPath('/board/' + post.id)
-  }
-
-  async destroyComment({ auth, params, response }: HttpContext) {
-    const comment = await Comment.findOrFail(parseId(params.id))
-    await new Bouncer(() => auth.getUserOrFail()).authorize(manageContent, comment)
-    await comment.delete()
-    invalidatePostLists()
-    publishBoardChange()
-    return response.redirect().toPath('/board/' + comment.postId)
-  }
-
-  async validate({ request, response }: HttpContext) {
-    try {
-      await request.validateUsing(createPost)
-      return { data: { valid: true } }
-    } catch (error) {
-      if (!(error instanceof errors.E_VALIDATION_ERROR)) throw error
-      return response.unprocessableEntity({ errors: error.messages })
-    }
-  }
+  @hasMany(() => Comment)
+  declare comments: HasMany<typeof Comment>
 }
 ```
 
 소스의 첫 줄을 1행으로 센다.
 
-- 1–12행 이 파일에서 사용하는 모듈과 데이터 타입을 불러오고 동작에 필요한 준비를 한다.
-- 13–17행 목록 쿼리를 해석하고 공용 서비스 결과를 Edge로 렌더링한다.
-- 18–33행 동적 id로 글과 댓글을 조회하고 Bouncer로 버튼의 표시 조건을 판단한다.
-- 34–47행 Vine 검사 후 로그인 사용자의 글을 저장하고 초안 삭제 신호를 설정한다.
-- 48–57행 DB에서 글을 찾고 작성자 권한이 허용되면 내용을 갱신한다.
-- 58–66행 작성자 권한을 확인한 글을 삭제하고 목록으로 이동한다.
-- 67–75행 존재하는 글의 관계에 로그인 사용자가 새 댓글을 추가한다.
-- 76–84행 댓글 작성자 확인 후 삭제하고 해당 글로 돌아간다.
-- 85–94행 실제 저장 없이 같은 Vine 스키마를 적용해 200 또는 422를 준다.
+- 1–5행 Lucid가 생성한 스키마 클래스와 관계 선언에 필요한 모듈을 가져온다.
+- 7행 Post 모델은 마이그레이션의 열을 가진 PostSchema를 상속한다.
+- 8–9행 User 관계를 작성자에 연결한다.
+- 11–12행 댓글의 목록을 hasMany 관계로 연결한다.
 
 ### [`demo/resources/views/pages/board/show.edge`](demo/resources/views/pages/board/show.edge)
 
@@ -209,6 +144,8 @@ export default class BoardController {
 
 ## ⑦ ☐ 체크리스트
 
+### 1차 배포 체크리스트
+
 - [ ] 1차 배포에서 APP_KEY·DB 값과 마이그레이션 확인
 - [ ] 1차 배포에서 /health, 로그인, 글/댓글 작성자 권한 확인
 - [ ] 회고에서 화면과 API의 공통 조회 및 서로 다른 인증 경계를 설명
@@ -217,7 +154,7 @@ export default class BoardController {
 
 ### 1차 배포 회고
 
-읽기 조회를 공유하면서 화면과 API의 반환 형식을 분리했다. 배포 전 권한 실패의 기대 상태를 별도로 검증한다.
+1차 배포 순서는 APP_KEY 준비 → DB 마이그레이션 → Vite/TS 빌드 → HTTPS → 요청 점검이다. 읽기 조회를 공유하면서 화면과 API의 반환 형식을 분리했다. 배포 전 권한 실패의 기대 상태를 별도로 검증한다.
 
 ## ⑧ 다음 단계
 
