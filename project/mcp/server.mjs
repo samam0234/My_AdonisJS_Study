@@ -2,7 +2,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { z } from 'zod'
 
-const boardUrl = process.env.BOARD_URL ?? 'http://localhost:3333'
+const boardUrl = process.env.BOARD_URL ?? 'http://localhost:3334'
 const server = new McpServer({ name: 'adonis-board', version: '1.0.0' })
 const content = (data) => ({ content: [{ type: 'text', text: JSON.stringify(data) }] })
 

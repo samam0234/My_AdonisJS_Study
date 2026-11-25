@@ -12,11 +12,11 @@ Edge는 서버에서 초기 마크업을 만들고 Alpine의 `x-data` 상태는 
 
 ## ③ 🛠️ 실기
 
-`/workbench`의 `documentQuestion` Alpine 상태와 `x-model`을 연결한다. 질문의 글자 수가 `x-text`에서 바뀌고, 제출 직전 Zod로 1~1000자를 확인한다. 서버의 Vine 검사도 유지한다. 게시판 화면은 Edge 레이아웃을 공유하고 `board.css`에서 모바일 너비와 포커스 스타일을 지정한다.
+`project/`를 실행해 `http://localhost:3334/workbench`를 열고 `documentQuestion` Alpine 상태와 `x-model`을 연결한다. 질문의 글자 수가 `x-text`에서 바뀌고, 제출 직전 Zod로 1~1000자를 확인한다. 서버의 Vine 검사도 유지한다. 게시판 화면은 Edge 레이아웃을 공유하고 `board.css`에서 모바일 너비와 포커스 스타일을 지정한다.
 
 1. `npm run dev` 후 브라우저 폭을 줄이고 작업실 폼을 확인한다.
 
-### [`demo/resources/views/pages/board/workbench.edge`](demo/resources/views/pages/board/workbench.edge)
+### [`project/resources/views/pages/board/workbench.edge`](project/resources/views/pages/board/workbench.edge)
 
 ```html
 @component('components/layouts/board', { title: 'AI 작업실' })
@@ -54,7 +54,7 @@ Edge는 서버에서 초기 마크업을 만들고 Alpine의 `x-data` 상태는 
 
 소스의 첫 줄을 1행으로 센다.
 
-- 1행 이 파일에서 사용할 설정과 공용 구조를 선언한다.
+- 1행 이 파일의 첫 선언과 공통 설정을 정의한다.
 - 2–3행 작업실의 역할과 입력 가능한 기능을 표시한다.
 - 4–9행 로그인 상태에서 공개할 문서 폼과 CSRF를 제공한다.
 - 10–17행 Alpine 상태와 질문 글자 수, 스트리밍 출력을 연결한다.
@@ -62,7 +62,7 @@ Edge는 서버에서 초기 마크업을 만들고 Alpine의 `x-data` 상태는 
 - 19–26행 메일 예약과 테스트 결제를 각각 별도 POST로 제출한다.
 - 27–31행 게스트에게 세션 또는 GitHub 로그인 시작 링크를 표시한다.
 
-### [`demo/resources/js/board.js`](demo/resources/js/board.js)
+### [`project/resources/js/board.js`](project/resources/js/board.js)
 
 ```js
 import Alpine from 'alpinejs'
@@ -208,7 +208,7 @@ window.addEventListener('pageshow', () => {
 - 99–109행 완료·실패 시 스트림을 정리하고 버튼을 다시 활성화한다.
 - 110–125행 일반 POST 폼의 제출 버튼을 한 번만 동작시키고 뒤로 가기 복원 시 다시 활성화한다.
 
-### [`demo/resources/css/board.css`](demo/resources/css/board.css)
+### [`project/resources/css/board.css`](project/resources/css/board.css)
 
 ```css
 .study { color: #202a35; background: #f4f6f8; font-family: system-ui, sans-serif; min-height: 100vh; }

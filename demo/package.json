@@ -49,8 +49,6 @@
     "@types/alpinejs": "^3.13.11",
     "@types/luxon": "^3.7.5",
     "@types/node": "~26.6.2",
-    "@types/nodemailer": "^8.0.2",
-    "@types/ws": "^8.18.2",
     "alpinejs": "^3.17.4",
     "eslint": "^10.11.0",
     "hot-hook": "^1.0.0",
@@ -61,7 +59,6 @@
     "youch": "^4.1.1"
   },
   "dependencies": {
-    "@adonisjs/ally": "^6.3.2",
     "@adonisjs/auth": "^10.1.0",
     "@adonisjs/bouncer": "^4.0.1",
     "@adonisjs/core": "^7.5.2",
@@ -71,23 +68,13 @@
     "@adonisjs/shield": "^9.0.0",
     "@adonisjs/static": "^2.0.2",
     "@adonisjs/vite": "^6.0.2",
-    "@anthropic-ai/sdk": "^1.14.0",
     "@iconify-json/lucide": "^1.2.136",
-    "@modelcontextprotocol/sdk": "^1.32.2",
     "@vinejs/vine": "^4.4.0",
     "better-sqlite3": "^13.0.3",
     "edge-iconify": "^2.0.2",
     "edge.js": "^6.5.1",
     "luxon": "^3.7.2",
-    "mongodb": "^7.9.1",
-    "mysql2": "^3.24.6",
-    "nodemailer": "^10.6.1",
-    "pg": "^8.23.1",
-    "reflect-metadata": "^0.2.2",
-    "stripe": "^23.2.0",
-    "swagger-ui-dist": "^5.36.0",
-    "ws": "^8.23.0",
-    "zod": "^4.6.7"
+    "reflect-metadata": "^0.2.2"
   },
   "hotHook": {
     "boundaries": [

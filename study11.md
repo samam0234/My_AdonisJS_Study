@@ -12,11 +12,11 @@ Lucid의 관계와 DB 마이그레이션은 SQL 연결에서 사용된다. Postg
 
 ## ③ 🛠️ 실기
 
-빈 PostgreSQL DB에 `DB_CONNECTION=pg`, `DB_HOST`, `DB_PORT=5432`, `DB_USER`, `DB_PASSWORD`, `DB_DATABASE`를 설정하고 `node ace migration:run`을 실행한다. MariaDB도 빈 DB를 만들고 `DB_CONNECTION=mysql`, `DB_PORT=3306`으로 같은 마이그레이션을 실행한다. SQLite의 기존 데이터는 마이그레이션 명령으로 이동하지 않으므로 스키마 생성 뒤 별도 데이터 이관·검증이 필요하다. `MONGO_URL`을 설정하면 `/api/draft`의 GET/PATCH로 로그인 사용자 `_id`의 문서를 조회/저장한다.
+[README](README.md)의 심화 완성본 실행 명령으로 `project/` 앱부터 준비한다. `project/.env`에서 빈 PostgreSQL DB에 `DB_CONNECTION=pg`, `DB_HOST`, `DB_PORT=5432`, `DB_USER`, `DB_PASSWORD`, `DB_DATABASE`를 설정하고 `node ace migration:run`을 실행한다. MariaDB도 빈 DB를 만들고 `DB_CONNECTION=mysql`, `DB_PORT=3306`으로 같은 마이그레이션을 실행한다. SQLite의 기존 데이터는 마이그레이션 명령으로 이동하지 않으므로 스키마 생성 뒤 별도 데이터 이관·검증이 필요하다. `MONGO_URL`을 설정하면 `/api/draft`의 GET/PATCH로 로그인 사용자 `_id`의 문서를 조회/저장한다.
 
 1. 루트 `docker compose up -d db`는 운영 예제용 PostgreSQL을 준비한다. `/api/draft`를 호출할 때는 하나의 사용자 토큰으로 GET/PATCH를 실행한다.
 
-### [`demo/config/database.ts`](demo/config/database.ts)
+### [`project/config/database.ts`](project/config/database.ts)
 
 ```ts
 import env from '#start/env'
@@ -66,14 +66,14 @@ export default defineConfig({
 
 소스의 첫 줄을 1행으로 센다.
 
-- 1–4행 이 파일에서 사용하는 모듈과 데이터 타입을 불러오고 동작에 필요한 준비를 한다.
+- 1–4행 프레임워크 모듈과 이 파일에서 쓰는 타입을 불러온다.
 - 5–14행 DB 종류에 관계없이 같은 마이그레이션 경로와 네트워크 옵션을 재사용한다.
 - 15–16행 환경 기본값 SQLite 또는 지정한 SQL 연결을 선택한다.
 - 17–29행 로컬 파일 또는 메모리 SQLite를 열고 개발에서만 스키마를 재생성한다.
 - 30–35행 PostgreSQL에 드라이버와 기본 포트를 지정한다.
 - 36–43행 MariaDB의 mysql2 연결과 UTC 설정을 지정한다.
 
-### [`demo/app/services/integrations.ts`](demo/app/services/integrations.ts)
+### [`project/app/services/integrations.ts`](project/app/services/integrations.ts)
 
 ```ts
 import { randomUUID } from 'node:crypto'
@@ -224,7 +224,7 @@ export async function deliverNextMail() {
 
 소스의 첫 줄을 1행으로 센다.
 
-- 1–10행 이 파일에서 사용하는 모듈과 데이터 타입을 불러오고 동작에 필요한 준비를 한다.
+- 1–10행 프레임워크 모듈과 이 파일에서 쓰는 타입을 불러온다.
 - 11–18행 서버 환경에서 Stripe 테스트 키를 읽어 클라이언트를 만든다.
 - 19–47행 결제 성공 세션만 DB의 멱등 키로 한 번 기록한다.
 - 48–71행 외부 id를 기존 사용자에 연결하고 신규 계정 생성은 트랜잭션으로 처리한다.
@@ -246,7 +246,7 @@ export async function deliverNextMail() {
 
 ## ⑥ 직접 해보기
 
-1. 동일 API 요청 테스트를 SQLite와 MariaDB에서 실행한다.
+1. `project/`에서 동일 API 요청 테스트를 SQLite와 MariaDB 연결로 각각 실행한다.
 2. Mongo에 저장한 초안을 두 사용자 토큰으로 각각 조회한다.
 
 ## ⑦ ☐ 체크리스트

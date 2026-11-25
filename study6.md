@@ -14,7 +14,7 @@ Migration은 DB 구조의 변경 기록이고 Lucid 모델은 행과 관계의 �
 
 `node ace migration:run`으로 SQLite를 준비하고 `/api/auth/signup`→`/api/auth/login`→`POST /api/posts`→목록·상세→PATCH→DELETE로 실행한다. `POST /api/posts/{id}/comments`로 댓글을 만들고 댓글 삭제 권한을 별도로 확인한다. 목록은 검색·한 페이지 최대 50개·지정 정렬을 지원한다.
 
-1. `node ace migration:status`로 적용 여부를 확인하고 `/api-docs`의 Try it out에서 요청한다.
+1. `node ace migration:status`로 적용 여부를 확인하고 아래 PowerShell 요청을 실행한다.
 
 ```powershell
 node ace migration:status
@@ -101,8 +101,7 @@ import Post from '#models/post'
 import Comment from '#models/comment'
 import { manageContent } from '#abilities/board'
 import { ApiError, commentJson, parseId, parseList, postJson } from '#services/board_contract'
-import { invalidatePostLists, listPosts, postQuery } from '#services/posts'
-import { publishBoardChange } from '#services/board_events'
+import { listPosts, postQuery } from '#services/posts'
 import { createComment, createPost, patchPost } from '#validators/board'
 
 export default class ApiPostsController {
@@ -119,8 +118,6 @@ export default class ApiPostsController {
     const user = auth.getUserOrFail()
     const { title, body, tags = [] } = await request.validateUsing(createPost)
     const post = await Post.create({ title, body, tagsJson: JSON.stringify(tags), userId: user.id })
-    invalidatePostLists()
-    publishBoardChange()
     response.header('Location', `/api/posts/${post.id}`)
     return response.created({ data: postJson(post, true, user) })
   }
@@ -135,8 +132,6 @@ export default class ApiPostsController {
     post.merge(payload)
     if (tags !== undefined) post.tagsJson = JSON.stringify(tags)
     await post.save()
-    invalidatePostLists()
-    publishBoardChange()
     return { data: postJson(post) }
   }
 
@@ -144,8 +139,6 @@ export default class ApiPostsController {
     const post = await Post.findOrFail(parseId(params.id))
     await new Bouncer(() => auth.getUserOrFail()).authorize(manageContent, post)
     await post.delete()
-    invalidatePostLists()
-    publishBoardChange()
     return response.noContent()
   }
 
@@ -160,8 +153,6 @@ export default class ApiPostsController {
     const user = auth.getUserOrFail()
     const { body } = await request.validateUsing(createComment)
     const comment = await Comment.create({ postId: post.id, userId: user.id, body })
-    invalidatePostLists()
-    publishBoardChange()
     return response.created({ data: commentJson(comment, user) })
   }
 
@@ -169,8 +160,6 @@ export default class ApiPostsController {
     const comment = await Comment.findOrFail(parseId(params.id))
     await new Bouncer(() => auth.getUserOrFail()).authorize(manageContent, comment)
     await comment.delete()
-    invalidatePostLists()
-    publishBoardChange()
     return response.noContent()
   }
 }
@@ -178,19 +167,19 @@ export default class ApiPostsController {
 
 소스의 첫 줄을 1행으로 센다.
 
-- 1–11행 이 파일에서 사용하는 모듈과 데이터 타입을 불러오고 동작에 필요한 준비를 한다.
-- 12–15행 쿼리를 검증한 후 목록과 페이지 메타를 반환한다.
-- 16–20행 id를 파싱하고 작성자와 댓글 수가 포함된 한 글을 반환한다.
-- 21–30행 로그인 사용자의 검증된 글을 201, Location과 함께 반환한다.
-- 31–45행 작성자 권한을 확인하고 PATCH에 포함된 값만 병합한다.
-- 46–54행 권한이 있는 글을 삭제하고 본문 없는 204를 반환한다.
-- 55–60행 글의 존재 확인 뒤 작성자가 포함된 댓글 목록을 읽는다.
-- 61–70행 검증된 본문으로 댓글을 만들고 201을 반환한다.
-- 71–79행 댓글의 실제 작성자를 확인한 뒤 204로 응답한다.
+- 1–10행 프레임워크 모듈과 이 파일에서 쓰는 타입을 불러온다.
+- 11–14행 쿼리를 검증한 후 목록과 페이지 메타를 반환한다.
+- 15–19행 id를 파싱하고 작성자와 댓글 수가 포함된 한 글을 반환한다.
+- 20–27행 로그인 사용자의 검증된 글을 201, Location과 함께 반환한다.
+- 28–40행 작성자 권한을 확인하고 PATCH에 포함된 값만 병합한다.
+- 41–47행 권한이 있는 글을 삭제하고 본문 없는 204를 반환한다.
+- 48–53행 글의 존재 확인 뒤 작성자가 포함된 댓글 목록을 읽는다.
+- 54–61행 검증된 본문으로 댓글을 만들고 201을 반환한다.
+- 62–68행 댓글의 실제 작성자를 확인한 뒤 204로 응답한다.
 
 ## ④ 🔗 연동 포인트
 
-환경변수 `DB_CONNECTION`, `DB_DATABASE`는 코드 없이 연결을 바꾼다. DB의 `user_id`는 내부 FK이며 API의 `author` 및 camelCase 시간 문자열로 매핑한다.
+`demo/.env`의 `DB_DATABASE`로 SQLite 파일을 지정한다. 네트워크 DB는 완성 앱 `project/`의 [study11](study11.md)에서 연결한다. DB의 `user_id`는 내부 FK이며 API의 `author` 및 camelCase 시간 문자열로 매핑한다.
 
 ## ⑤ 오류 노트
 

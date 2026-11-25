@@ -54,8 +54,6 @@ export default defineConfig({
     () => import('@adonisjs/lucid/database_provider'),
     () => import('@adonisjs/auth/auth_provider'),
     () => import('@adonisjs/cors/cors_provider'),
-    () => import('@adonisjs/ally/ally_provider'),
-    { file: () => import('#providers/board_events_provider'), environment: ['web'] },
   ],
 
   /*
@@ -121,7 +119,6 @@ export default defineConfig({
       pattern: 'public/**',
       reloadServer: false,
     },
-    { pattern: 'contracts/*.json', reloadServer: false },
     { pattern: 'tmp/.gitkeep', reloadServer: false },
   ],
 

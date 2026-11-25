@@ -14,10 +14,10 @@ REST의 자원 이름과 메서드는 서비스의 문법이다. `/api/posts`는
 
 `/api-docs`는 로컬 Swagger UI를, `/api-docs/openapi.json`은 명세 파일을 제공한다. 게시판 v1의 기존 접두어는 `/api`이며 향후 호환되지 않는 변경에는 새 버전 경로를 둘 수 있다. 목록의 page는 1부터, limit은 최대 50, 정렬은 createdAt/-createdAt/-commentCount이고 동일 시각에는 id로 순서를 고정한다.
 
-1. 전체 버전 계약은 [openapi.json](demo/contracts/openapi.json)에서 확인한다.
+1. 전체 버전 계약은 [openapi.json](project/contracts/openapi.json)에서 확인한다.
 2. 학습 기준은 [HTTP · REST · API 설계](https://app.notion.com/p/3d6d7dec5e2e8139adbfd36dd506c65e)다.
 
-### [`demo/app/services/api_docs.ts`](demo/app/services/api_docs.ts)
+### [`project/app/services/api_docs.ts`](project/app/services/api_docs.ts)
 
 ```ts
 import { readFile } from 'node:fs/promises'
@@ -57,13 +57,13 @@ export async function serveDocsAsset(response: Response, name: string) {
 
 소스의 첫 줄을 1행으로 센다.
 
-- 1–6행 이 파일에서 사용하는 모듈과 데이터 타입을 불러오고 동작에 필요한 준비를 한다.
+- 1–6행 프레임워크 모듈과 이 파일에서 쓰는 타입을 불러온다.
 - 7–11행 다운로드 가능한 Swagger 자산의 허용 목록과 MIME을 지정한다.
 - 12–16행 배포 빌드의 원본 OpenAPI JSON을 읽어 응답한다.
 - 17–26행 Swagger UI에 JSON 명세 경로와 로컬 자산을 연결한다.
 - 27–33행 허용된 패키지 자산만 읽고 응답 캐시와 Content-Type을 설정한다.
 
-### [`demo/app/services/board_contract.ts`](demo/app/services/board_contract.ts)
+### [`project/app/services/board_contract.ts`](project/app/services/board_contract.ts)
 
 ```ts
 import { Exception } from '@adonisjs/core/exceptions'
@@ -136,7 +136,7 @@ export function commentJson(comment: Comment, user: User = comment.user) {
 
 소스의 첫 줄을 1행으로 센다.
 
-- 1–5행 이 파일에서 사용하는 모듈과 데이터 타입을 불러오고 동작에 필요한 준비를 한다.
+- 1–5행 프레임워크 모듈과 이 파일에서 쓰는 타입을 불러온다.
 - 6–11행 HTTP 코드와 공통 오류 이름을 가진 예외를 정의한다.
 - 12–19행 자원 id의 양의 정수·범위를 검증한다.
 - 20–27행 목록 요청 정수의 기본값과 유효 범위를 정한다.

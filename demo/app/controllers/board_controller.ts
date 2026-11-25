@@ -5,8 +5,7 @@ import { manageContent } from '#abilities/board'
 import Post from '#models/post'
 import Comment from '#models/comment'
 import { parseId, parseList } from '#services/board_contract'
-import { invalidatePostLists, listPosts, postQuery } from '#services/posts'
-import { publishBoardChange } from '#services/board_events'
+import { listPosts, postQuery } from '#services/posts'
 import { createComment, createPost } from '#validators/board'
 
 export default class BoardController {
@@ -40,8 +39,6 @@ export default class BoardController {
       userId: auth.getUserOrFail().id,
     })
     session.flash('draftSaved', true)
-    invalidatePostLists()
-    publishBoardChange()
     return response.redirect().toPath('/board/' + post.id)
   }
 
@@ -50,8 +47,6 @@ export default class BoardController {
     await new Bouncer(() => auth.getUserOrFail()).authorize(manageContent, post)
     const { title, body } = await request.validateUsing(createPost)
     await post.merge({ title, body }).save()
-    invalidatePostLists()
-    publishBoardChange()
     return response.redirect().toPath('/board/' + post.id)
   }
 
@@ -59,8 +54,6 @@ export default class BoardController {
     const post = await Post.findOrFail(parseId(params.id))
     await new Bouncer(() => auth.getUserOrFail()).authorize(manageContent, post)
     await post.delete()
-    invalidatePostLists()
-    publishBoardChange()
     return response.redirect().toPath('/board')
   }
 
@@ -68,8 +61,6 @@ export default class BoardController {
     const post = await Post.findOrFail(parseId(params.id))
     const { body } = await request.validateUsing(createComment)
     await post.related('comments').create({ body, userId: auth.getUserOrFail().id })
-    invalidatePostLists()
-    publishBoardChange()
     return response.redirect().toPath('/board/' + post.id)
   }
 
@@ -77,8 +68,6 @@ export default class BoardController {
     const comment = await Comment.findOrFail(parseId(params.id))
     await new Bouncer(() => auth.getUserOrFail()).authorize(manageContent, comment)
     await comment.delete()
-    invalidatePostLists()
-    publishBoardChange()
     return response.redirect().toPath('/board/' + comment.postId)
   }
 

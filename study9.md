@@ -6,13 +6,13 @@ Japa에서 순수 로직과 실제 HTTP 요청 경로를 분리해 검증한다.
 
 ## ② 📖 이론
 
-단위 테스트는 자를 대는 검사이고 요청 테스트는 출입구부터 통과하는 검사다. 실제 라우터·미들웨어·DB를 쓰는 테스트는 통합 오류를 찾는다. 외부 모델 API는 생성기 의존성을 주입해 네트워크를 제어한다.
+단위 테스트는 자를 대는 검사이고 요청 테스트는 출입구부터 통과하는 검사다. 실제 라우터·미들웨어·DB를 쓰는 테스트는 통합 오류를 찾는다. 외부 API는 호출 함수를 인자로 받아 테스트에서 제어할 수 있다.
 
 [공식·원문 참고](https://docs.adonisjs.com/guides/testing/introduction)
 
 ## ③ 🛠️ 실기
 
-`npm test` 또는 `node ace test unit`으로 확인한다. 기본 테스트 DB는 `:memory:`이고 `testUtils.db().migrate()`가 시작/종료 시 마이그레이션을 관리한다. `prepareChat`에 가짜 async generator를 넣으면 토큰 수와 답변을 결정적으로 검증할 수 있다. VS Code에서 JavaScript Debug Terminal을 열고 `npm run dev`를 실행해 중단점을 둔다.
+`npm test` 또는 `node ace test unit`으로 확인한다. 기본 테스트 DB는 `:memory:`이고 `testUtils.db().migrate()`가 시작/종료 시 마이그레이션을 관리한다. `demo/`에서는 실제 HTTP 라우트와 메모리 DB를 검증한다. 외부 요청 대역의 기본 방식은 아래 예제처럼 호출 함수만 바꾸는 것이다. VS Code에서 JavaScript Debug Terminal을 열고 `npm run dev`를 실행해 중단점을 둔다.
 
 1. `npm test -- functional`로 실제 HTTP 요청 테스트만 실행한다.
 
@@ -21,7 +21,6 @@ Japa에서 순수 로직과 실제 HTTP 요청 경로를 분리해 검증한다.
 ```ts
 import { test } from '@japa/runner'
 import { parseId, parseList } from '#services/board_contract'
-import { evidencePrompt, excerpts } from '#services/ai_context'
 
 test('정상적인 id와 v1 페이지 기본값을 사용한다', ({ assert }) => {
   assert.equal(parseId('42'), 42)
@@ -30,22 +29,17 @@ test('정상적인 id와 v1 페이지 기본값을 사용한다', ({ assert }) =
   assert.equal(parseList({ limit: '100', sort: '-commentCount' }).limit, 50)
 })
 
-test('AI 발췌는 일치하는 번호와 원문을 전달한다', ({ assert }) => {
-  const selected = excerpts('Edge 템플릿은 서버에서 HTML을 렌더링합니다.', 'Edge 설명')
-  assert.deepEqual(
-    selected.map(({ number }) => number),
-    [1]
-  )
-  assert.include(evidencePrompt('Edge 설명', selected), 'HTML')
-  assert.deepEqual(excerpts('Edge만 설명합니다.', 'PostgreSQL'), [])
+test('잘못된 정렬 값과 0페이지를 거절한다', ({ assert }) => {
+  assert.throws(() => parseList({ sort: 'title' }), '지원하지 않는 정렬입니다.')
+  assert.throws(() => parseList({ page: '0' }), 'page와 limit은 양의 정수여야 합니다.')
 })
 ```
 
 소스의 첫 줄을 1행으로 센다.
 
-- 1–4행 이 파일에서 사용하는 모듈과 데이터 타입을 불러오고 동작에 필요한 준비를 한다.
-- 5–11행 양의 id와 기본 페이지·상한을 DB 없이 검증한다.
-- 12–20행 키워드 검색 후 근거 번호와 근거 없는 상황을 검증한다.
+- 1–3행 프레임워크 모듈과 이 파일에서 쓰는 타입을 불러온다.
+- 4–10행 id와 기본 목록 조건, 최대 페이지 크기를 검증한다.
+- 11–14행 잘못된 정렬과 0페이지 거절 규칙을 독립적으로 확인한다.
 
 ### [`demo/tests/functional/board.spec.ts`](demo/tests/functional/board.spec.ts)
 
@@ -53,7 +47,6 @@ test('AI 발췌는 일치하는 번호와 원문을 전달한다', ({ assert }) 
 /* eslint-disable @unicorn/no-await-expression-member -- Assertions read the single expected HTTP field. */
 import { test } from '@japa/runner'
 import { randomUUID } from 'node:crypto'
-import { prepareChat } from '#services/ai_chat'
 
 const url = () => 'http://127.0.0.1:' + process.env.PORT
 async function api(path: string, method = 'GET', body?: unknown, token?: string) {
@@ -85,7 +78,7 @@ async function account(nickname: string) {
   }
 }
 
-test('공통 API 인증·글·댓글·오류·캐시를 요청으로 검증한다', async ({ assert }) => {
+test('공통 API 인증·글·댓글·오류를 요청으로 검증한다', async ({ assert }) => {
   assert.deepEqual((await api('/health')).json, { status: 'ok' })
   const main = await account('작성자')
   const other = await account('다른 회원')
@@ -160,47 +153,10 @@ test('공통 API 인증·글·댓글·오류·캐시를 요청으로 검증한�
   assert.equal((await api('/api/auth/me', 'GET', undefined, main.token)).response.status, 401)
 })
 
-test('AI SSE·근거·사용자별 기록과 주입한 모델 대역을 확인한다', async ({ assert }) => {
-  const user = await account('질문자')
-  const reader = await account('다른 질문자')
-  const created = await api(
-    '/api/posts',
-    'POST',
-    { title: '문서', body: 'AdonisJS와 Edge로 게시판을 만듭니다.' },
-    user.token
-  )
-  const postId = created.json.data.id
-  const input = { postId, question: 'Edge를 요약' }
-  const mocked = await prepareChat(user.id, postId, input.question, async function* () {
-    yield { text: '대역 응답 (발췌 1)', inputTokens: 10, outputTokens: 3 }
-  })
-  for await (const text of mocked.run(AbortSignal.timeout(2000))) assert.include(text, '대역 응답')
-  const response = await fetch(url() + '/api/ai/chat/stream', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + user.token },
-    body: JSON.stringify(input),
-  })
-  const stream = await response.text()
-  assert.equal(response.status, 200)
-  assert.include(response.headers.get('content-type')!, 'text/event-stream')
-  assert.include(stream, '발췌 1')
-  assert.include(stream, 'data: [DONE]')
-  const unknown = await api('/api/ai/chat', 'POST', { postId, question: '코끼리' }, user.token)
-  assert.equal(unknown.json.data.text, '찾을 수 없습니다.')
-  const history = await api('/api/ai/history', 'GET', undefined, user.token)
-  assert.equal(history.json.data.length, 3)
-  assert.equal(history.json.data[2].inputTokens, 10)
-  assert.equal((await api('/api/ai/history', 'GET', undefined, reader.token)).json.data.length, 0)
-})
-
-test('Edge 첫 화면, 게시판, 작업실, 오류 페이지와 OpenAPI를 HTTP로 제공한다', async ({
-  assert,
-}) => {
+test('Edge 첫 화면·게시판·오류 페이지를 HTTP로 제공한다', async ({ assert }) => {
   for (const [path, text] of [
     ['/', 'Hello, AdonisJS!'],
     ['/board', '게시판'],
-    ['/workbench', 'AI 작업실'],
-    ['/api-docs', 'SwaggerUIBundle'],
   ]) {
     const page = await fetch(url() + path)
     assert.equal(page.status, 200, path)
@@ -208,20 +164,46 @@ test('Edge 첫 화면, 게시판, 작업실, 오류 페이지와 OpenAPI를 HTTP
   }
   const missing = await fetch(url() + '/board/2147483647', { headers: { Accept: 'text/html' } })
   assert.equal(missing.status, 404)
-  const docs = await api('/api-docs/openapi.json')
-  assert.equal(docs.json.openapi, '3.0.3')
-  assert.property(docs.json.paths, '/api/posts/{id}/comments')
+})
+
+test('중간 앱에는 기본 게시판 경로가 등록되어 있다', async ({ assert }) => {
+  const board = await api('/api/posts')
+  assert.equal(board.response.status, 200)
+  assert.isArray(board.json.data)
+  const ai = await api('/api/ai/history')
+  assert.equal(ai.response.status, 404)
+  assert.equal(ai.json.error.code, 'NOT_FOUND')
 })
 ```
 
 소스의 첫 줄을 1행으로 센다.
 
-- 1–5행 이 파일에서 사용하는 모듈과 데이터 타입을 불러오고 동작에 필요한 준비를 한다.
-- 6–22행 테스트 서버에 fetch 요청을 보내고 필요에 따라 요청 id·Bearer·JSON 본문을 구성한다.
-- 23–35행 서로 다른 실습 회원을 가입시키고 Bearer를 얻는다.
-- 36–110행 인증·검증 오류·게시글·댓글 인가·목록 스펙·캐시 무효화·로그아웃을 순서대로 검증한다.
-- 111–143행 제어 가능한 AI 대역과 실제 SSE, 사용자별 기록의 격리를 검증한다.
-- 144–162행 공개 HTML, 오류 페이지와 OpenAPI의 정상 응답을 검증한다.
+- 1–4행 프레임워크 모듈과 이 파일에서 쓰는 타입을 불러온다.
+- 5–21행 HTTP 테스트 서버와 JSON 요청 헤더·Bearer 토큰을 구성한다.
+- 22–34행 서로 다른 게시판 사용자를 가입시키고 토큰을 발급한다.
+- 35–109행 인증·글·댓글 CRUD·소유권·v1 오류·로그아웃을 실제 라우트에서 확인한다.
+- 110–122행 Edge 첫 화면, 게시판, HTML 404 응답을 확인한다.
+- 123–130행 API v1 목록을 읽고 심화 전용 경로가 중간 게시판에 없음을 확인한다.
+
+### HTTP 함수로 API 대역 주입하기
+
+```js
+import assert from 'node:assert/strict'
+
+async function readPosts(fetcher = fetch) {
+  const response = await fetcher('http://localhost:3333/api/posts')
+  assert.ok(response.ok)
+  return (await response.json()).data
+}
+
+const fakeFetch = async () => Response.json({ data: [{ id: 1, title: 'Edge 실습' }] })
+const posts = await readPosts(fakeFetch)
+assert.equal(posts[0].title, 'Edge 실습')
+```
+
+- 1행 Node의 assert를 불러온다.
+- 3–7행 조회 함수에서 기본 HTTP 호출을 사용하고 성공 응답의 data를 읽는다.
+- 9–11행 지정한 JSON을 반환하는 함수를 주입하고 네트워크 없이 조회 결과를 확인한다.
 
 ## ④ 🔗 연동 포인트
 
@@ -246,7 +228,7 @@ test('Edge 첫 화면, 게시판, 작업실, 오류 페이지와 OpenAPI를 HTTP
 
 1. 단위 테스트에 `page=0` 케이스를 더한다.
 2. 다른 회원이 내 글을 수정할 때 403을 기대하는 요청 테스트를 실행한다.
-3. 모델 대역의 토큰 값을 바꾸고 기록 검증이 잡아내는지 확인한다.
+3. HTTP 대역이 반환하는 제목을 다르게 정해 응답 검증을 추가한다.
 
 ## ⑦ ☐ 체크리스트
 

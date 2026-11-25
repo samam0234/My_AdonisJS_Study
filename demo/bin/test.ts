@@ -12,10 +12,7 @@
 
 process.env.NODE_ENV = 'test'
 process.env.DB_DATABASE = process.env.TEST_DB_DATABASE ?? ':memory:'
-process.env.DB_CONNECTION = process.env.TEST_DB_CONNECTION ?? 'sqlite'
 process.env.SESSION_DRIVER = 'memory'
-process.env.AI_PROVIDER = 'mock'
-process.env.POST_CACHE_MS = '5000'
 process.env.PORT = process.env.TEST_PORT ?? '3384'
 process.env.HOST = '127.0.0.1'
 

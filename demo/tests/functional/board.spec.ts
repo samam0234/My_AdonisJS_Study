@@ -1,7 +1,6 @@
 /* eslint-disable @unicorn/no-await-expression-member -- Assertions read the single expected HTTP field. */
 import { test } from '@japa/runner'
 import { randomUUID } from 'node:crypto'
-import { prepareChat } from '#services/ai_chat'
 
 const url = () => 'http://127.0.0.1:' + process.env.PORT
 async function api(path: string, method = 'GET', body?: unknown, token?: string) {
@@ -33,7 +32,7 @@ async function account(nickname: string) {
   }
 }
 
-test('공통 API 인증·글·댓글·오류·캐시를 요청으로 검증한다', async ({ assert }) => {
+test('공통 API 인증·글·댓글·오류를 요청으로 검증한다', async ({ assert }) => {
   assert.deepEqual((await api('/health')).json, { status: 'ok' })
   const main = await account('작성자')
   const other = await account('다른 회원')
@@ -108,47 +107,10 @@ test('공통 API 인증·글·댓글·오류·캐시를 요청으로 검증한�
   assert.equal((await api('/api/auth/me', 'GET', undefined, main.token)).response.status, 401)
 })
 
-test('AI SSE·근거·사용자별 기록과 주입한 모델 대역을 확인한다', async ({ assert }) => {
-  const user = await account('질문자')
-  const reader = await account('다른 질문자')
-  const created = await api(
-    '/api/posts',
-    'POST',
-    { title: '문서', body: 'AdonisJS와 Edge로 게시판을 만듭니다.' },
-    user.token
-  )
-  const postId = created.json.data.id
-  const input = { postId, question: 'Edge를 요약' }
-  const mocked = await prepareChat(user.id, postId, input.question, async function* () {
-    yield { text: '대역 응답 (발췌 1)', inputTokens: 10, outputTokens: 3 }
-  })
-  for await (const text of mocked.run(AbortSignal.timeout(2000))) assert.include(text, '대역 응답')
-  const response = await fetch(url() + '/api/ai/chat/stream', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + user.token },
-    body: JSON.stringify(input),
-  })
-  const stream = await response.text()
-  assert.equal(response.status, 200)
-  assert.include(response.headers.get('content-type')!, 'text/event-stream')
-  assert.include(stream, '발췌 1')
-  assert.include(stream, 'data: [DONE]')
-  const unknown = await api('/api/ai/chat', 'POST', { postId, question: '코끼리' }, user.token)
-  assert.equal(unknown.json.data.text, '찾을 수 없습니다.')
-  const history = await api('/api/ai/history', 'GET', undefined, user.token)
-  assert.equal(history.json.data.length, 3)
-  assert.equal(history.json.data[2].inputTokens, 10)
-  assert.equal((await api('/api/ai/history', 'GET', undefined, reader.token)).json.data.length, 0)
-})
-
-test('Edge 첫 화면, 게시판, 작업실, 오류 페이지와 OpenAPI를 HTTP로 제공한다', async ({
-  assert,
-}) => {
+test('Edge 첫 화면·게시판·오류 페이지를 HTTP로 제공한다', async ({ assert }) => {
   for (const [path, text] of [
     ['/', 'Hello, AdonisJS!'],
     ['/board', '게시판'],
-    ['/workbench', 'AI 작업실'],
-    ['/api-docs', 'SwaggerUIBundle'],
   ]) {
     const page = await fetch(url() + path)
     assert.equal(page.status, 200, path)
@@ -156,7 +118,13 @@ test('Edge 첫 화면, 게시판, 작업실, 오류 페이지와 OpenAPI를 HTTP
   }
   const missing = await fetch(url() + '/board/2147483647', { headers: { Accept: 'text/html' } })
   assert.equal(missing.status, 404)
-  const docs = await api('/api-docs/openapi.json')
-  assert.equal(docs.json.openapi, '3.0.3')
-  assert.property(docs.json.paths, '/api/posts/{id}/comments')
+})
+
+test('중간 앱에는 기본 게시판 경로가 등록되어 있다', async ({ assert }) => {
+  const board = await api('/api/posts')
+  assert.equal(board.response.status, 200)
+  assert.isArray(board.json.data)
+  const ai = await api('/api/ai/history')
+  assert.equal(ai.response.status, 404)
+  assert.equal(ai.json.error.code, 'NOT_FOUND')
 })

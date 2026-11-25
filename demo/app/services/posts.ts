@@ -1,36 +1,11 @@
 import Post from '#models/post'
 import { type parseList, postJson } from '#services/board_contract'
-import env from '#start/env'
-
-type ListResult = Awaited<ReturnType<typeof loadPosts>>
-const lists = new Map<string, { until: number; result: ListResult }>()
-let generation = 0
-
-export function invalidatePostLists() {
-  generation++
-  lists.clear()
-}
 
 export function postQuery() {
   return Post.query().preload('user').withCount('comments')
 }
 
 export async function listPosts(filters: ReturnType<typeof parseList>) {
-  const ttl = env.get('POST_CACHE_MS') ?? 0
-  if (ttl <= 0) return loadPosts(filters)
-  const key = JSON.stringify(filters)
-  const hit = lists.get(key)
-  if (hit && hit.until > Date.now()) return hit.result
-  const before = generation
-  const result = await loadPosts(filters)
-  if (before === generation) {
-    if (lists.size >= 100) lists.delete(lists.keys().next().value!)
-    lists.set(key, { until: Date.now() + ttl, result })
-  }
-  return result
-}
-
-async function loadPosts(filters: ReturnType<typeof parseList>) {
   const { q, sort, page, limit } = filters
   const query = postQuery()
   if (q) {

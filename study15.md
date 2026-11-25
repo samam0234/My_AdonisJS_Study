@@ -16,7 +16,7 @@
 
 1. 측정 중 같은 데이터·프로세스·쿼리를 사용하고 결과 시간을 회고에 적는다.
 
-### [`demo/app/services/posts.ts`](demo/app/services/posts.ts)
+### [`project/app/services/posts.ts`](project/app/services/posts.ts)
 
 ```ts
 import Post from '#models/post'
@@ -81,14 +81,14 @@ async function loadPosts(filters: ReturnType<typeof parseList>) {
 
 소스의 첫 줄을 1행으로 센다.
 
-- 1–4행 이 파일에서 사용하는 모듈과 데이터 타입을 불러오고 동작에 필요한 준비를 한다.
+- 1–4행 프레임워크 모듈과 이 파일에서 쓰는 타입을 불러온다.
 - 5–8행 메모리 캐시의 결과 타입과 무효화 세대 변수를 정의한다.
 - 9–13행 성공한 변경 뒤 세대 번호를 갱신하고 목록 사본을 지운다.
 - 14–17행 DB에 작성자와 댓글 개수를 포함해 조회한다.
 - 18–32행 캐시를 적용할 환경에서만 키·TTL·최대 개수와 무효화 세대를 검사한다.
 - 33–58행 LIKE 검색에 특수문자를 이스케이프하고 안정적인 정렬과 메타를 만들어 반환한다.
 
-### [`demo/commands/mail_work.ts`](demo/commands/mail_work.ts)
+### [`project/commands/mail_work.ts`](project/commands/mail_work.ts)
 
 ```ts
 import { BaseCommand, flags } from '@adonisjs/core/ace'
@@ -114,14 +114,14 @@ export default class MailWork extends BaseCommand {
 
 소스의 첫 줄을 1행으로 센다.
 
-- 1–4행 이 파일에서 사용하는 모듈과 데이터 타입을 불러오고 동작에 필요한 준비를 한다.
+- 1–4행 프레임워크 모듈과 이 파일에서 쓰는 타입을 불러온다.
 - 5–9행 Ace 명령어를 만들고 실행 때 앱 컨테이너를 부팅하게 한다.
 - 10–12행 워커의 지속 실행 여부를 옵션으로 받는다.
 - 13–19행 처리할 메일이 없는 경우 기다리며 단발 또는 워커로 작동한다.
 
 ## ④ 🔗 연동 포인트
 
-프로세스 메모리 캐시는 단일 인스턴스에서 동작한다. 복수 인스턴스에서는 `POST_CACHE_MS=0`을 유지하거나 공유 캐시와 무효화 전파를 연결한다. `curl.exe -o NUL -s -w '%{time_total}' 'http://localhost:3333/api/posts'`를 캐시 전후 반복하고 p50/p95를 기록한다.
+프로세스 메모리 캐시는 단일 인스턴스에서 동작한다. 복수 인스턴스에서는 `POST_CACHE_MS=0`을 유지하거나 공유 캐시와 무효화 전파를 연결한다. `curl.exe -o NUL -s -w '%{time_total}' 'http://localhost:3334/api/posts'`를 캐시 전후 반복하고 p50/p95를 기록한다.
 
 ## ⑤ 오류 노트
 

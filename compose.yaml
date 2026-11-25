@@ -1,7 +1,7 @@
 name: adonis-study
 x-app: &app
   image: ${APP_IMAGE:-adonis-study:local}
-  env_file: demo/.env
+  env_file: project/.env
   environment:
     NODE_ENV: production
     HOST: 0.0.0.0

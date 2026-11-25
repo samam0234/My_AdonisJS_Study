@@ -29,64 +29,41 @@
 */
 
 import { middleware } from '#start/kernel'
-import { controllers } from '#generated/controllers'
 import router from '@adonisjs/core/services/router'
 
 const BoardController = () => import('#controllers/board_controller')
 const ApiAuthController = () => import('#controllers/api_auth_controller')
 const ApiPostsController = () => import('#controllers/api_posts_controller')
-const IntegrationsController = () => import('#controllers/integrations_controller')
-const AiController = () => import('#controllers/ai_controller')
+const NewAccountController = () => import('#controllers/new_account_controller')
+const SessionController = () => import('#controllers/session_controller')
 router
   .on('/')
   .render('pages/board/hello', { title: 'Hello, AdonisJS!', topics: ['Edge', 'Ace'] })
   .as('home')
 router.get('/health', () => ({ status: 'ok' }))
-router.on('/workbench').render('pages/board/workbench')
-router.get('/oauth/github', [IntegrationsController, 'github']).use(middleware.guest())
-router
-  .get('/oauth/github/callback', [IntegrationsController, 'githubCallback'])
-  .use(middleware.guest())
-router.get('/api-docs', async ({ response }) => {
-  const { serveContract } = await import('#services/api_docs')
-  return serveContract(response)
-})
-router.get('/api-docs/openapi.json', async ({ response }) => {
-  const { serveOpenApi } = await import('#services/api_docs')
-  return serveOpenApi(response)
-})
-router.get('/api-docs/assets/:name', async ({ params, response }) => {
-  const { serveDocsAsset } = await import('#services/api_docs')
-  return serveDocsAsset(response, params.name)
-})
 router.get('/board', [BoardController, 'index']).as('board.index')
 router.get('/board/:id', [BoardController, 'show']).as('board.show')
 
 router
   .group(() => {
-    router.get('signup', [controllers.NewAccount, 'create'])
-    router.post('signup', [controllers.NewAccount, 'store'])
+    router.get('signup', [NewAccountController, 'create']).as('new_account.create')
+    router.post('signup', [NewAccountController, 'store']).as('new_account.store')
 
-    router.get('login', [controllers.Session, 'create'])
-    router.post('login', [controllers.Session, 'store'])
+    router.get('login', [SessionController, 'create']).as('session.create')
+    router.post('login', [SessionController, 'store']).as('session.store')
   })
   .use(middleware.guest())
 
 router
   .group(() => {
     router.get('/dashboard', ({ response }) => response.redirect().toPath('/board')).as('dashboard')
-    router.post('logout', [controllers.Session, 'destroy'])
+    router.post('logout', [SessionController, 'destroy']).as('session.destroy')
     router.post('/board', [BoardController, 'store'])
     router.post('/board/:id/edit', [BoardController, 'update'])
     router.post('/board/:id/delete', [BoardController, 'destroy'])
     router.post('/board/:id/comments', [BoardController, 'addComment'])
     router.post('/board/comments/:id/delete', [BoardController, 'destroyComment'])
     router.post('/board/validate', [BoardController, 'validate'])
-    router.post('/workbench/upload', [IntegrationsController, 'upload'])
-    router.post('/workbench/mail', [IntegrationsController, 'mail'])
-    router.post('/workbench/checkout', [IntegrationsController, 'checkout'])
-    router.post('/workbench/chat', [AiController, 'stream']).as('workbench.chat')
-    router.get('/workbench/history', [AiController, 'history']).as('workbench.history')
   })
   .use(middleware.auth())
 
@@ -97,7 +74,6 @@ router
     router.get('/posts', [ApiPostsController, 'index'])
     router.get('/posts/:id', [ApiPostsController, 'show'])
     router.get('/posts/:id/comments', [ApiPostsController, 'comments'])
-    router.post('/webhooks/stripe', [IntegrationsController, 'webhook'])
 
     router
       .group(() => {
@@ -108,11 +84,6 @@ router
         router.delete('/posts/:id', [ApiPostsController, 'destroy'])
         router.post('/posts/:id/comments', [ApiPostsController, 'addComment'])
         router.delete('/comments/:id', [ApiPostsController, 'destroyComment'])
-        router.get('/draft', [IntegrationsController, 'showDraft'])
-        router.patch('/draft', [IntegrationsController, 'saveDraft'])
-        router.post('/ai/chat', [AiController, 'chat'])
-        router.post('/ai/chat/stream', [AiController, 'stream'])
-        router.get('/ai/history', [AiController, 'history'])
       })
       .use(middleware.auth({ guards: ['api'] }))
   })
@@ -121,13 +92,14 @@ router
 
 소스의 첫 줄을 1행으로 센다.
 
-- 1–13행 이 파일에서 사용하는 모듈과 데이터 타입을 불러오고 동작에 필요한 준비를 한다.
-- 14–40행 필요한 시점에 웹·API·통합·AI 컨트롤러를 가져오는 함수를 선언한다.
-- 41–45행 공개 목록과 동적 상세를 컨트롤러에 연결한다.
-- 46–55행 회원가입과 로그인 화면·제출을 게스트 미들웨어로 보호한다.
-- 56–73행 로그인된 사용자만 게시판 쓰기와 작업실 기능을 호출한다.
-- 74–82행 공통 API 그룹에는 가입·로그인·글 읽기와 서명 검증 웹훅을 등록한다.
-- 83–98행 내 정보·게시글 변경·댓글·AI·초안은 API Bearer 가드를 통과해야 한다.
+- 1–12행 프레임워크 모듈과 이 파일에서 쓰는 타입을 불러온다.
+- 13–18행 웹 게시판, JSON API와 계정·세션 컨트롤러를 요청 시 불러온다.
+- 19–22행 Edge 첫 화면과 상태 확인 경로를 등록한다.
+- 23–27행 공개 목록과 글 번호가 있는 동적 상세 경로를 정의한다.
+- 28–37행 게스트 전용 가입·로그인 경로에 템플릿에서 사용할 이름을 붙인다.
+- 38–50행 세션 회원만 글과 댓글을 쓰고 입력을 검증할 수 있게 한다.
+- 51–58행 공개 API의 가입, 로그인, 게시판 조회를 등록한다.
+- 59–69행 Bearer 인증을 요구하는 계정과 글·댓글 변경 경로를 묶는다.
 
 ### [`demo/app/middleware/request_id_middleware.ts`](demo/app/middleware/request_id_middleware.ts)
 
@@ -157,7 +129,7 @@ Edge의 이름 있는 라우트와 페이지 링크는 쿼리를 유지한다. D
 | 증상 | 원인 | 해결 |
 | --- | --- | --- |
 | 404 | 이름과 URL 또는 id가 다름 | `node ace list:routes` 및 `/api/posts`의 id를 확인한다. |
-| 라우트 이름 중복 | 같은 메서드가 두 라우트에 자동으로 이름 부여 | `.as(...)`로 작업실 스트림의 이름을 지정한다. |
+| 라우트 이름 중복 | 둘 이상의 라우트가 같은 이름 사용 | `.as(...)`로 겹치지 않는 이름을 지정한다. |
 
 ## ⑥ 직접 해보기
 

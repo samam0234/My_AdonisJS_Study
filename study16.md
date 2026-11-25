@@ -12,11 +12,11 @@ Docker와 GitHub Actions로 재현 가능한 빌드와 배포·백업 절차를 
 
 ## ③ 🛠️ 실기
 
-루트에서 `docker build -t adonis-study:local demo` 뒤 `docker compose up -d --wait`를 실행한다. HTTPS 리버스 프록시는 호스트 `127.0.0.1:3360`으로 연결한다. 운영 서버의 `~/adonis-study`에 compose와 `demo/.env`를 준비하고, GitHub 변수 `DEPLOY_HOST/DEPLOY_USER` 및 시크릿 `DEPLOY_SSH_KEY/DEPLOY_KNOWN_HOSTS`를 설정한다. 이미지가 비공개라면 운영 서버의 GHCR pull 권한도 준비한다. `main`의 CI는 테스트→SHA 이미지 발행→설정된 SSH 서버에 배포한다.
+`project/.env`를 준비하고 루트에서 `docker build -t adonis-study:local project` 뒤 `docker compose up -d --wait`를 실행한다. HTTPS 리버스 프록시는 호스트 `127.0.0.1:3360`으로 연결한다. 운영 서버의 `~/adonis-study`에 compose와 `project/.env`를 준비하고, GitHub 변수 `DEPLOY_HOST/DEPLOY_USER` 및 시크릿 `DEPLOY_SSH_KEY/DEPLOY_KNOWN_HOSTS`를 설정한다. 이미지가 비공개라면 운영 서버의 GHCR pull 권한도 준비한다. `main`의 CI는 두 앱을 검증한 뒤 `project/` SHA 이미지를 발행하고 설정된 SSH 서버에 배포한다.
 
 1. `docker compose ps`에서 DB 및 웹 health, `docker compose logs migrate`에서 종료 코드 0을 확인한다.
 
-### [`demo/Dockerfile`](demo/Dockerfile)
+### [`project/Dockerfile`](project/Dockerfile)
 
 ```dockerfile
 FROM node:24-bookworm-slim AS build
@@ -53,7 +53,7 @@ CMD ["node", "bin/server.js"]
 name: adonis-study
 x-app: &app
   image: ${APP_IMAGE:-adonis-study:local}
-  env_file: demo/.env
+  env_file: project/.env
   environment:
     NODE_ENV: production
     HOST: 0.0.0.0
@@ -111,12 +111,12 @@ volumes:
 
 소스의 첫 줄을 1행으로 센다.
 
-- 1–16행 로컬 Docker 리소스 이름과 공통 운영 환경을 정의한다.
-- 17–23행 PostgreSQL 볼륨과 준비 확인을 구성한다.
-- 24–29행 DB 데이터를 컨테이너 교체 이후에도 보존한다.
+- 1–16행 Compose 이름과 project/.env, 운영 DB 연결을 설정한다.
+- 17–29행 PostgreSQL 볼륨과 준비 확인을 선언한다.
 - 30–35행 DB가 준비되면 운영 마이그레이션을 한 번 실행한다.
-- 36–47행 마이그레이션 성공 이후 앱을 띄우고 헬스를 확인한다.
-- 48–57행 메일 프로필을 켤 때 처리 워커가 별도 프로세스로 실행된다.
+- 36–47행 마이그레이션이 완료되면 완성 앱을 띄우고 헬스를 확인한다.
+- 48–55행 선택 프로필에서 SMTP 발송 워커를 실행한다.
+- 56–57행 DB 데이터를 컨테이너 밖에 보관한다.
 
 ### [`.github/workflows/ci.yml`](.github/workflows/ci.yml)
 
@@ -133,18 +133,22 @@ permissions:
 jobs:
   test:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        app: [demo, project]
     defaults:
       run:
-        working-directory: demo
+        working-directory: ${{ matrix.app }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
           cache: npm
-          cache-dependency-path: demo/package-lock.json
+          cache-dependency-path: ${{ matrix.app }}/package-lock.json
       - run: npm ci
       - run: cp .env.example .env && node ace generate:key
+      - run: node ace migration:run
       - run: npm run lint
       - run: npm run build
       - run: npm test
@@ -169,7 +173,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
       - uses: docker/build-push-action@v6
         with:
-          context: demo
+          context: project
           push: true
           tags: ${{ steps.image.outputs.ref }}
 
@@ -198,11 +202,11 @@ jobs:
 
 소스의 첫 줄을 1행으로 센다.
 
-- 1행 이 파일에서 사용할 설정과 공용 구조를 선언한다.
-- 2–10행 PR과 main push에서 실행하고 기본 읽기 권한을 설정한다.
-- 11–28행 Node 24의 잠금 버전 설치 후 린트·빌드·테스트를 실행한다.
-- 29–52행 테스트가 끝난 main push에 한해 SHA 태그로 GHCR 이미지를 발행한다.
-- 53–73행 지정된 운영 호스트에서 known_hosts로 인증하고 Compose가 동일한 이미지를 실행한다.
+- 1행 이 파일의 첫 선언과 공통 설정을 정의한다.
+- 2–10행 PR과 main push에서 실행하고 GitHub 권한 기본값을 정한다.
+- 11–32행 demo와 project 매트릭스에서 설치·마이그레이션·린트·빌드·테스트를 각각 실행한다.
+- 33–56행 두 앱 검증 뒤 project용 이미지를 커밋 SHA로 발행한다.
+- 57–77행 운영 호스트가 지정되면 서버에서 이미지와 Compose를 실행한다.
 
 ## ④ 🔗 연동 포인트
 

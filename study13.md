@@ -12,11 +12,11 @@
 
 ## ③ 🛠️ 실기
 
-Stripe 테스트 모드 가격을 만들고 `STRIPE_SECRET_KEY`, `STRIPE_PRICE_ID`, `STRIPE_WEBHOOK_SECRET`을 설정한다. `stripe listen --forward-to localhost:3333/api/webhooks/stripe`의 서명 키를 사용한다. SMTP는 `SMTP_URL`과 `MAIL_FROM`을 설정하고 작업실에서 메일을 예약한 뒤 `node ace mail:work`를 실행한다. GitHub OAuth 앱 콜백은 `APP_URL`의 `/oauth/github/callback`이며 두 자격 증명을 넣고 작업실 링크에서 시작한다. 텍스트 업로드는 최대 1MB, UTF-8, 본문 2만자로 제한된다.
+Stripe 테스트 모드 가격을 만들고 `STRIPE_SECRET_KEY`, `STRIPE_PRICE_ID`, `STRIPE_WEBHOOK_SECRET`을 설정한다. `stripe listen --forward-to localhost:3334/api/webhooks/stripe`의 서명 키를 사용한다. SMTP는 `SMTP_URL`과 `MAIL_FROM`을 설정하고 작업실에서 메일을 예약한 뒤 `node ace mail:work`를 실행한다. GitHub OAuth 앱 콜백은 `APP_URL`의 `/oauth/github/callback`이며 두 자격 증명을 넣고 작업실 링크에서 시작한다. 텍스트 업로드는 최대 1MB, UTF-8, 본문 2만자로 제한된다.
 
 1. Mailpit을 쓸 때 `SMTP_URL=smtp://localhost:1025`를 설정한 뒤 UI의 받은 편지함을 연다.
 
-### [`demo/app/controllers/integrations_controller.ts`](demo/app/controllers/integrations_controller.ts)
+### [`project/app/controllers/integrations_controller.ts`](project/app/controllers/integrations_controller.ts)
 
 ```ts
 import { readFile } from 'node:fs/promises'
@@ -131,7 +131,7 @@ export default class IntegrationsController {
 
 소스의 첫 줄을 1행으로 센다.
 
-- 1–16행 이 파일에서 사용하는 모듈과 데이터 타입을 불러오고 동작에 필요한 준비를 한다.
+- 1–16행 프레임워크 모듈과 이 파일에서 쓰는 타입을 불러온다.
 - 17–19행 MongoDB 초안의 텍스트 상한을 검증한다.
 - 20–43행 첨부를 검증한 뒤 UTF-8 원문을 게시글로 저장하고 페이지를 이동한다.
 - 44–59행 미리 정해 둔 테스트 가격과 로그인한 사용자의 참조로 결제 화면을 만든다.
@@ -141,7 +141,7 @@ export default class IntegrationsController {
 - 89–99행 state와 공급자 오류를 검사하고 외부 id에서 세션 계정을 찾는다.
 - 100–108행 현재 API 사용자의 Mongo 초안을 읽거나 검증해 저장한다.
 
-### [`demo/app/services/integrations.ts`](demo/app/services/integrations.ts)
+### [`project/app/services/integrations.ts`](project/app/services/integrations.ts)
 
 ```ts
 import { randomUUID } from 'node:crypto'
@@ -292,7 +292,7 @@ export async function deliverNextMail() {
 
 소스의 첫 줄을 1행으로 센다.
 
-- 1–10행 이 파일에서 사용하는 모듈과 데이터 타입을 불러오고 동작에 필요한 준비를 한다.
+- 1–10행 프레임워크 모듈과 이 파일에서 쓰는 타입을 불러온다.
 - 11–18행 서버 환경에서 Stripe 테스트 키를 읽어 클라이언트를 만든다.
 - 19–47행 결제 성공 세션만 DB의 멱등 키로 한 번 기록한다.
 - 48–71행 외부 id를 기존 사용자에 연결하고 신규 계정 생성은 트랜잭션으로 처리한다.

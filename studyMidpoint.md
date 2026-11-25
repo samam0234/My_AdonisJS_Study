@@ -2,7 +2,7 @@
 
 ## ① 목표
 
-기초 단계의 라우팅·검증·인증·DB를 묶어 글과 댓글을 관리한다.
+독립 실행되는 `demo/`에서 기초 단계의 라우팅·검증·인증·SQLite를 묶어 글과 댓글을 관리한다.
 
 ## ② 📖 이론
 
@@ -36,7 +36,7 @@ demo/
 2. [study2](study2.md)의 MVC 구조대로 Post와 Comment를 만들고, [study4](study4.md)의 `/board`, `/board/:id`, `/api/posts` 경로를 연결한다.
 3. [study5](study5.md)의 Vine 검증으로 글과 댓글을 검증하고, [study7](study7.md)의 세션·Bearer와 Bouncer 권한을 붙인다.
 4. 아래 Edge 상세 뷰를 렌더링하고 두 사용자로 글·댓글 CRUD를 점검한다. [study9](study9.md)의 요청 테스트를 실행한다.
-5. [study10](study10.md)의 명령으로 빌드한다. 중간 응용 확인은 `/board`와 공통 v1 게시판 API에서 진행한다.
+5. [study10](study10.md)의 명령으로 빌드한다. `http://localhost:3333/board`와 같은 포트의 공통 v1 API에서 중간 앱을 확인한다.
 
 ### [`demo/app/models/post.ts`](demo/app/models/post.ts)
 
@@ -129,6 +129,8 @@ export default class Post extends PostSchema {
 
 동일한 글과 댓글은 Edge와 API에서 조회된다. 테스트 DB는 앱 DB와 분리하고 앱 빌드에는 환경 비밀을 포함하지 않는다.
 
+분리 전 demo에 적용된 마이그레이션 ID는 호환을 위해 유지한다. 새 demo DB에는 게시판 테이블만 생성되며 심화 기능은 project의 별도 DB에서 동작한다.
+
 ## ⑤ 오류 노트
 
 | 증상 | 원인 | 해결 |
@@ -158,4 +160,4 @@ export default class Post extends PostSchema {
 
 ## ⑧ 다음 단계
 
-study11에서 같은 게시판을 PostgreSQL·MariaDB에 연결해 본다. [study11.md](study11.md)
+study11부터 별도 앱 `project/`를 실행하고 게시판을 PostgreSQL·MariaDB에 연결한다. [study11.md](study11.md)

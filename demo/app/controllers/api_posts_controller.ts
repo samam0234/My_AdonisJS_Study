@@ -4,8 +4,7 @@ import Post from '#models/post'
 import Comment from '#models/comment'
 import { manageContent } from '#abilities/board'
 import { ApiError, commentJson, parseId, parseList, postJson } from '#services/board_contract'
-import { invalidatePostLists, listPosts, postQuery } from '#services/posts'
-import { publishBoardChange } from '#services/board_events'
+import { listPosts, postQuery } from '#services/posts'
 import { createComment, createPost, patchPost } from '#validators/board'
 
 export default class ApiPostsController {
@@ -22,8 +21,6 @@ export default class ApiPostsController {
     const user = auth.getUserOrFail()
     const { title, body, tags = [] } = await request.validateUsing(createPost)
     const post = await Post.create({ title, body, tagsJson: JSON.stringify(tags), userId: user.id })
-    invalidatePostLists()
-    publishBoardChange()
     response.header('Location', `/api/posts/${post.id}`)
     return response.created({ data: postJson(post, true, user) })
   }
@@ -38,8 +35,6 @@ export default class ApiPostsController {
     post.merge(payload)
     if (tags !== undefined) post.tagsJson = JSON.stringify(tags)
     await post.save()
-    invalidatePostLists()
-    publishBoardChange()
     return { data: postJson(post) }
   }
 
@@ -47,8 +42,6 @@ export default class ApiPostsController {
     const post = await Post.findOrFail(parseId(params.id))
     await new Bouncer(() => auth.getUserOrFail()).authorize(manageContent, post)
     await post.delete()
-    invalidatePostLists()
-    publishBoardChange()
     return response.noContent()
   }
 
@@ -63,8 +56,6 @@ export default class ApiPostsController {
     const user = auth.getUserOrFail()
     const { body } = await request.validateUsing(createComment)
     const comment = await Comment.create({ postId: post.id, userId: user.id, body })
-    invalidatePostLists()
-    publishBoardChange()
     return response.created({ data: commentJson(comment, user) })
   }
 
@@ -72,8 +63,6 @@ export default class ApiPostsController {
     const comment = await Comment.findOrFail(parseId(params.id))
     await new Bouncer(() => auth.getUserOrFail()).authorize(manageContent, comment)
     await comment.delete()
-    invalidatePostLists()
-    publishBoardChange()
     return response.noContent()
   }
 }

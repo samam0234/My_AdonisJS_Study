@@ -1,6 +1,5 @@
 import { test } from '@japa/runner'
 import { parseId, parseList } from '#services/board_contract'
-import { evidencePrompt, excerpts } from '#services/ai_context'
 
 test('정상적인 id와 v1 페이지 기본값을 사용한다', ({ assert }) => {
   assert.equal(parseId('42'), 42)
@@ -9,12 +8,7 @@ test('정상적인 id와 v1 페이지 기본값을 사용한다', ({ assert }) =
   assert.equal(parseList({ limit: '100', sort: '-commentCount' }).limit, 50)
 })
 
-test('AI 발췌는 일치하는 번호와 원문을 전달한다', ({ assert }) => {
-  const selected = excerpts('Edge 템플릿은 서버에서 HTML을 렌더링합니다.', 'Edge 설명')
-  assert.deepEqual(
-    selected.map(({ number }) => number),
-    [1]
-  )
-  assert.include(evidencePrompt('Edge 설명', selected), 'HTML')
-  assert.deepEqual(excerpts('Edge만 설명합니다.', 'PostgreSQL'), [])
+test('잘못된 정렬 값과 0페이지를 거절한다', ({ assert }) => {
+  assert.throws(() => parseList({ sort: 'title' }), '지원하지 않는 정렬입니다.')
+  assert.throws(() => parseList({ page: '0' }), 'page와 limit은 양의 정수여야 합니다.')
 })

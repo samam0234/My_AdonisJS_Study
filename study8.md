@@ -12,7 +12,7 @@
 
 ## ③ 🛠️ 실기
 
-`start/env.ts`에 타입을 정하고 `config/database.ts`에서 연결을 선택한다. `services/posts.ts`는 페이지와 API에서 함께 사용하고 `services/board_contract.ts`에는 입력 경계와 직렬화가 있다. 운영은 NODE_ENV=production과 HTTPS APP_URL, 별도 APP_KEY와 DB 자격 증명을 설정한다.
+`demo/start/env.ts`에 타입을 정하고 `demo/config/database.ts`에서 SQLite 파일의 위치를 지정한다. `services/posts.ts`는 페이지와 API에서 함께 사용하고 `services/board_contract.ts`에는 입력 경계와 직렬화가 있다. 운영은 NODE_ENV=production과 HTTPS APP_URL, 별도 APP_KEY와 DB 자격 증명을 설정한다.
 
 1. 환경값을 비교할 때 비밀 값은 출력하지 않고 변수명과 연결 상태를 기록한다.
 
@@ -22,43 +22,23 @@
 import env from '#start/env'
 import app from '@adonisjs/core/services/app'
 import { defineConfig } from '@adonisjs/lucid'
+import { legacyWorkbenchTables } from '#database/legacy_workbench_tables'
 
-const migrations = { naturalSort: true, paths: ['database/migrations'] }
-const network = {
-  host: env.get('DB_HOST') ?? '127.0.0.1',
-  user: env.get('DB_USER'),
-  password: env.get('DB_PASSWORD'),
-  database: env.get('DB_DATABASE'),
-  ssl: env.get('DB_SSL') ? { rejectUnauthorized: true } : undefined,
-}
+const filename = env.get('DB_DATABASE')
 
 export default defineConfig({
-  connection: env.get('DB_CONNECTION') ?? 'sqlite',
+  connection: 'sqlite',
   connections: {
     sqlite: {
       client: 'better-sqlite3',
-      connection: {
-        filename:
-          env.get('DB_DATABASE') === ':memory:' ? ':memory:' : app.tmpPath(env.get('DB_DATABASE')),
-      },
+      connection: { filename: filename === ':memory:' ? filename : app.tmpPath(filename) },
       useNullAsDefault: true,
-      migrations,
+      migrations: { naturalSort: true, paths: ['database/migrations'] },
       schemaGeneration: {
         enabled: !app.inTest && !app.inProduction,
         rulesPaths: ['./database/schema_rules.js'],
+        excludeTables: legacyWorkbenchTables,
       },
-    },
-    pg: {
-      client: 'pg',
-      connection: { ...network, port: env.get('DB_PORT') ?? 5432 },
-      migrations,
-      schemaGeneration: { enabled: false },
-    },
-    mysql: {
-      client: 'mysql2',
-      connection: { ...network, port: env.get('DB_PORT') ?? 3306, timezone: 'Z' },
-      migrations,
-      schemaGeneration: { enabled: false },
     },
   },
 })
@@ -66,12 +46,11 @@ export default defineConfig({
 
 소스의 첫 줄을 1행으로 센다.
 
-- 1–4행 이 파일에서 사용하는 모듈과 데이터 타입을 불러오고 동작에 필요한 준비를 한다.
-- 5–14행 DB 종류에 관계없이 같은 마이그레이션 경로와 네트워크 옵션을 재사용한다.
-- 15–16행 환경 기본값 SQLite 또는 지정한 SQL 연결을 선택한다.
-- 17–29행 로컬 파일 또는 메모리 SQLite를 열고 개발에서만 스키마를 재생성한다.
-- 30–35행 PostgreSQL에 드라이버와 기본 포트를 지정한다.
-- 36–43행 MariaDB의 mysql2 연결과 UTC 설정을 지정한다.
+- 1–5행 프레임워크 모듈과 기존 DB에서 스키마 생성 대상에서 제외할 테이블 목록을 가져온다.
+- 6–8행 환경 스키마에서 DB 파일 이름을 읽는다.
+- 9–11행 SQLite 연결을 등록한다.
+- 12–14행 테스트 메모리 DB와 tmp 아래 저장되는 로컬 파일을 구분한다.
+- 15–23행 마이그레이션 위치와 스키마 생성 옵션을 설정한다. 기존 DB에서 심화 테이블은 생성된 모델 스키마의 대상에서 빠진다.
 
 ### [`demo/start/env.ts`](demo/start/env.ts)
 
@@ -106,40 +85,19 @@ export default await Env.create(new URL('../', import.meta.url), {
   // Database
   DB_DATABASE: Env.schema.string(),
   CORS_ORIGIN: Env.schema.string.optional(),
-  DB_CONNECTION: Env.schema.enum.optional(['sqlite', 'pg', 'mysql'] as const),
-  DB_HOST: Env.schema.string.optional(),
-  DB_PORT: Env.schema.number.optional(),
-  DB_USER: Env.schema.string.optional(),
-  DB_PASSWORD: Env.schema.string.optional(),
-  DB_SSL: Env.schema.boolean.optional(),
-  MONGO_URL: Env.schema.string.optional(),
-  GITHUB_CLIENT_ID: Env.schema.string.optional(),
-  GITHUB_CLIENT_SECRET: Env.schema.string.optional(),
-  STRIPE_SECRET_KEY: Env.schema.string.optional(),
-  STRIPE_PRICE_ID: Env.schema.string.optional(),
-  STRIPE_WEBHOOK_SECRET: Env.schema.string.optional(),
-  SMTP_URL: Env.schema.string.optional(),
-  MAIL_FROM: Env.schema.string.optional(),
-  AI_PROVIDER: Env.schema.enum.optional(['mock', 'ollama', 'anthropic'] as const),
-  AI_MODEL: Env.schema.string.optional(),
-  OLLAMA_URL: Env.schema.string.optional(),
-  ANTHROPIC_API_KEY: Env.schema.string.optional(),
-  AI_DAILY_TOKEN_LIMIT: Env.schema.number.optional(),
-  POST_CACHE_MS: Env.schema.number.optional(),
 })
 ```
 
 소스의 첫 줄을 1행으로 센다.
 
-- 1–13행 이 파일에서 사용하는 모듈과 데이터 타입을 불러오고 동작에 필요한 준비를 한다.
-- 14–25행 앱 시작 시 Node 환경과 필수 시크릿을 검증한다.
-- 26–36행 세션 방식과 데이터베이스 파일·출처·네트워크 DB 키를 검증한다.
-- 37–44행 선택 서비스의 URI·OAuth/Stripe/SMTP 설정 키를 정의한다.
-- 45–51행 허용 모델 제공자·모델·토큰 예산·캐시 TTL 값을 검증한다.
+- 1–13행 프레임워크 모듈과 이 파일에서 쓰는 타입을 불러온다.
+- 14–25행 실행 모드, 포트, 비밀 키와 외부 접속 URL을 시작 시 검증한다.
+- 26–28행 세션 저장 방식의 허용 목록을 선언한다.
+- 29–31행 SQLite 파일 이름과 선택 CORS 출처를 선언한다.
 
 ## ④ 🔗 연동 포인트
 
-`npm ci`는 잠금 파일을 사용한다. 테스트는 `bin/test.ts`에서 기본 SQLite 메모리 DB와 mock AI를 강제해 개발 데이터와 분리한다.
+`npm ci`는 잠금 파일을 사용한다. 테스트는 `demo/bin/test.ts`에서 기본 SQLite 메모리 DB를 사용해 개발 데이터를 분리한다.
 
 ## ⑤ 오류 노트
 

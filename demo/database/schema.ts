@@ -7,63 +7,8 @@
 import { BaseModel, column } from '@adonisjs/lucid/orm'
 import { DateTime } from 'luxon'
 
-export class AiBudgetSchema extends BaseModel {
-  static $columns = ['day', 'reservedTokens', 'userId'] as const
-  $columns = AiBudgetSchema.$columns
-  @column()
-  declare day: string
-  @column()
-  declare reservedTokens: number | null
-  @column({ isPrimary: true })
-  declare userId: number
-}
-
-export class AiHistorySchema extends BaseModel {
-  static $columns = [
-    'answer',
-    'createdAt',
-    'id',
-    'inputTokens',
-    'outputTokens',
-    'postId',
-    'question',
-    'sourcesJson',
-    'userId',
-  ] as const
-  $columns = AiHistorySchema.$columns
-  @column()
-  declare answer: string
-  @column.dateTime({ autoCreate: true })
-  declare createdAt: DateTime | null
-  @column({ isPrimary: true })
-  declare id: number
-  @column()
-  declare inputTokens: number | null
-  @column()
-  declare outputTokens: number | null
-  @column()
-  declare postId: number
-  @column()
-  declare question: string
-  @column()
-  declare sourcesJson: string
-  @column()
-  declare userId: number
-}
-
 export class AuthAccessTokenSchema extends BaseModel {
-  static $columns = [
-    'abilities',
-    'createdAt',
-    'expiresAt',
-    'hash',
-    'id',
-    'lastUsedAt',
-    'name',
-    'tokenableId',
-    'type',
-    'updatedAt',
-  ] as const
+  static $columns = ['abilities', 'createdAt', 'expiresAt', 'hash', 'id', 'lastUsedAt', 'name', 'tokenableId', 'type', 'updatedAt'] as const
   $columns = AuthAccessTokenSchema.$columns
   @column()
   declare abilities: string
@@ -98,47 +43,6 @@ export class CommentSchema extends BaseModel {
   declare id: number
   @column()
   declare postId: number
-  @column()
-  declare userId: number
-}
-
-export class MailJobSchema extends BaseModel {
-  static $columns = ['attempts', 'availableAt', 'day', 'id', 'status', 'userId'] as const
-  $columns = MailJobSchema.$columns
-  @column()
-  declare attempts: number | null
-  @column.dateTime()
-  declare availableAt: DateTime | null
-  @column()
-  declare day: string
-  @column({ isPrimary: true })
-  declare id: number
-  @column()
-  declare status: string | null
-  @column()
-  declare userId: number
-}
-
-export class OauthIdentitySchema extends BaseModel {
-  static $columns = ['providerId', 'userId'] as const
-  $columns = OauthIdentitySchema.$columns
-  @column({ isPrimary: true })
-  declare providerId: string
-  @column()
-  declare userId: number
-}
-
-export class PaymentReceiptSchema extends BaseModel {
-  static $columns = ['amount', 'createdAt', 'currency', 'sessionId', 'userId'] as const
-  $columns = PaymentReceiptSchema.$columns
-  @column()
-  declare amount: number
-  @column.dateTime({ autoCreate: true })
-  declare createdAt: DateTime | null
-  @column()
-  declare currency: string
-  @column({ isPrimary: true })
-  declare sessionId: string
   @column()
   declare userId: number
 }

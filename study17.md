@@ -16,7 +16,7 @@ WebSocket은 한 연결에서 계속 신호를 받는 통로다. 이 실습의 �
 
 1. DevTools Network의 WS에서 `board.changed` 메시지를 확인한다.
 
-### [`demo/app/services/board_events.ts`](demo/app/services/board_events.ts)
+### [`project/app/services/board_events.ts`](project/app/services/board_events.ts)
 
 ```ts
 import { WebSocket, WebSocketServer } from 'ws'
@@ -58,13 +58,13 @@ export function publishBoardChange() {
 
 소스의 첫 줄을 1행으로 센다.
 
-- 1–4행 이 파일에서 사용하는 모듈과 데이터 타입을 불러오고 동작에 필요한 준비를 한다.
+- 1–4행 프레임워크 모듈과 이 파일에서 쓰는 타입을 불러온다.
 - 5–6행 HTTP 서버를 재사용하는 WebSocket 서버와 수신 메시지 크기 상한을 정한다.
 - 7–22행 경로·Origin·최대 연결 수를 확인한 뒤 연결을 업그레이드한다.
 - 23–28행 종료 시 업그레이드 리스너를 제거하고 소켓을 닫는다.
 - 29–35행 전송 가능한 소켓에 비식별 공개 변경 신호만 보낸다.
 
-### [`demo/providers/board_events_provider.ts`](demo/providers/board_events_provider.ts)
+### [`project/providers/board_events_provider.ts`](project/providers/board_events_provider.ts)
 
 ```ts
 import type { ApplicationService } from '@adonisjs/core/types'
@@ -89,7 +89,7 @@ export default class BoardEventsProvider {
 
 소스의 첫 줄을 1행으로 센다.
 
-- 1–5행 이 파일에서 사용하는 모듈과 데이터 타입을 불러오고 동작에 필요한 준비를 한다.
+- 1–5행 프레임워크 모듈과 이 파일에서 쓰는 타입을 불러온다.
 - 6–14행 AdonisJS HTTP 서버가 준비된 시점에 소켓을 붙인다.
 - 15–18행 애플리케이션 종료 때 소켓 리소스를 정리한다.
 

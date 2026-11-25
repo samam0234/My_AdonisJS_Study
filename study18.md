@@ -12,12 +12,12 @@ DocuForge의 업로드 → 텍스트 추출 → 청크 검색 → 근거가 있�
 
 ## ③ 🛠️ 실기
 
-기본 AI_PROVIDER=mock에서 시작하고, Ollama를 쓰려면 모델을 설치한 뒤 AI_PROVIDER=ollama, AI_MODEL, OLLAMA_URL을 지정한다. 외부 모델은 AI_PROVIDER=anthropic과 서버의 ANTHROPIC_API_KEY, AI_MODEL을 설정한다. `/api/ai/chat`은 JSON, `/api/ai/chat/stream`은 SSE이며 API에는 Bearer, 작업실에는 세션·CSRF가 필요하다. SSE를 POST fetch로 읽고 출력은 textContent로 붙인다. `node mcp/client.mjs AdonisJS`는 별도 stdio 서버를 실행하고 `search_posts`를 호출한다.
+`project/`의 기본 `AI_PROVIDER=mock`에서 시작하고, Ollama를 쓰려면 모델을 설치한 뒤 AI_PROVIDER=ollama, AI_MODEL, OLLAMA_URL을 지정한다. 외부 모델은 AI_PROVIDER=anthropic과 서버의 ANTHROPIC_API_KEY, AI_MODEL을 설정한다. `/api/ai/chat`은 JSON, `/api/ai/chat/stream`은 SSE이며 API에는 Bearer, 작업실에는 세션·CSRF가 필요하다. SSE를 POST fetch로 읽고 출력은 textContent로 붙인다. `project/`에서 실행하는 `node mcp/client.mjs AdonisJS`는 별도 stdio 서버를 실행하고 `search_posts`를 호출한다.
 
 1. 학습 원문은 [AI 모델 연동 · MCP](https://app.notion.com/p/40bd7dec5e2e81b9b11dfe5616516df4)와 [DocuForge](https://app.notion.com/p/40bd7dec5e2e818d9c91c6fb26dccc4c)다.
 2. 이 실습은 UTF-8 TXT·MD와 키워드 청크를 사용한다. DocuForge의 PDF·DOCX·PPTX 파서 및 임베딩·별도 모델 도구 실행은 후속 확장 범위다.
 
-### [`demo/app/services/ai_context.ts`](demo/app/services/ai_context.ts)
+### [`project/app/services/ai_context.ts`](project/app/services/ai_context.ts)
 
 ```ts
 export const noEvidence = '찾을 수 없습니다.'
@@ -55,7 +55,7 @@ export function evidencePrompt(question: string, sources: ReturnType<typeof exce
 - 9–24행 청크 분할과 키워드 점수로 상위 발췌 번호와 원문을 선택한다.
 - 25–27행 질문과 문서 발췌를 구조화해 모델 입력에 전달한다.
 
-### [`demo/app/services/ai_provider.ts`](demo/app/services/ai_provider.ts)
+### [`project/app/services/ai_provider.ts`](project/app/services/ai_provider.ts)
 
 ```ts
 import Anthropic from '@anthropic-ai/sdk'
@@ -152,7 +152,7 @@ export async function* modelParts(
 
 소스의 첫 줄을 1행으로 센다.
 
-- 1–3행 이 파일에서 사용하는 모듈과 데이터 타입을 불러오고 동작에 필요한 준비를 한다.
+- 1–3행 프레임워크 모듈과 이 파일에서 쓰는 타입을 불러온다.
 - 4–10행 텍스트와 토큰 사용량을 통일된 스트림 데이터로 표현한다.
 - 11–19행 mock은 저장된 발췌 몇 줄을 결정적으로 반환한다.
 - 20–22행 실제 서비스 호출에서 환경값의 모델 ID를 요구한다.
@@ -160,7 +160,7 @@ export async function* modelParts(
 - 46–62행 Ollama의 스트리밍 요청에 시스템 규칙·발췌·출력 제한을 보낸다.
 - 63–90행 NDJSON 버퍼를 프레임별로 파싱하고 최종 이벤트·사용량·연결 정리를 처리한다.
 
-### [`demo/app/controllers/ai_controller.ts`](demo/app/controllers/ai_controller.ts)
+### [`project/app/controllers/ai_controller.ts`](project/app/controllers/ai_controller.ts)
 
 ```ts
 import { Readable } from 'node:stream'
@@ -244,21 +244,21 @@ export default class AiController {
 
 소스의 첫 줄을 1행으로 센다.
 
-- 1–7행 이 파일에서 사용하는 모듈과 데이터 타입을 불러오고 동작에 필요한 준비를 한다.
+- 1–7행 프레임워크 모듈과 이 파일에서 쓰는 타입을 불러온다.
 - 8–16행 요청의 글 번호와 질문 문자열을 검증할 규칙을 정의한다.
 - 17–29행 인증된 사용자의 답변을 모아 JSON으로 보내고 공급자 장애를 공통 오류로 매핑한다.
 - 30–41행 응답을 SSE로 지정하고 연결 종료·타임아웃으로 모델 요청을 중단하도록 설정한다.
 - 42–58행 텍스트와 출처, 완료 신호 또는 오류 프레임을 출력하고 리스너를 해제한다.
 - 59–77행 최근 20건을 사용자 id로 필터링하고 응답에 필요한 필드만 반환한다.
 
-### [`demo/mcp/server.mjs`](demo/mcp/server.mjs)
+### [`project/mcp/server.mjs`](project/mcp/server.mjs)
 
 ```js
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { z } from 'zod'
 
-const boardUrl = process.env.BOARD_URL ?? 'http://localhost:3333'
+const boardUrl = process.env.BOARD_URL ?? 'http://localhost:3334'
 const server = new McpServer({ name: 'adonis-board', version: '1.0.0' })
 const content = (data) => ({ content: [{ type: 'text', text: JSON.stringify(data) }] })
 
@@ -286,14 +286,14 @@ await server.connect(new StdioServerTransport())
 
 소스의 첫 줄을 1행으로 센다.
 
-- 1–4행 이 파일에서 사용하는 모듈과 데이터 타입을 불러오고 동작에 필요한 준비를 한다.
+- 1–4행 프레임워크 모듈과 이 파일에서 쓰는 타입을 불러온다.
 - 5–8행 공개 게시판 URL과 MCP 서버를 정의하고 응답 변환기를 만든다.
 - 9–14행 AdonisJS 공개 HTTP API에 제한 시간 내에 요청한다.
 - 15–22행 Zod로 검색 인자를 정하고 서버 목록 API를 호출하는 도구를 공개한다.
 - 23–27행 글 번호를 검증하고 공개 상세 API를 호출한다.
 - 28행 stdout에 MCP 프로토콜 응답을 쓰는 stdio 전송을 연결한다.
 
-### [`demo/mcp/client.mjs`](demo/mcp/client.mjs)
+### [`project/mcp/client.mjs`](project/mcp/client.mjs)
 
 ```js
 import { fileURLToPath } from 'node:url'
@@ -326,7 +326,7 @@ try {
 
 소스의 첫 줄을 1행으로 센다.
 
-- 1–4행 이 파일에서 사용하는 모듈과 데이터 타입을 불러오고 동작에 필요한 준비를 한다.
+- 1–4행 프레임워크 모듈과 이 파일에서 쓰는 타입을 불러온다.
 - 5–11행 로컬 MCP 서버 프로세스와 연결하고 게시판 URL을 전달한다.
 - 12–23행 초기 연결, 도구 목록, 검색 도구 호출, 구조 검증 및 출력 순서로 실행한다.
 - 24–26행 호출 결과와 관계없이 클라이언트를 종료한다.

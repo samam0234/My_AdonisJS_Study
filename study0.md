@@ -12,7 +12,7 @@ AdonisJS는 Node.js에서 TypeScript로 HTTP 요청, HTML 화면, 데이터 접�
 
 ## ③ 🛠️ 실기
 
-현재 앱은 AdonisJS 7, Node.js 24+, npm 11+를 기준으로 한다. 설치 전 `node -v`, `npm -v`, `git --version`을 확인한다. 새 앱을 시험할 때는 이 저장소 밖에서 `npm init adonisjs@latest scratch -- --kit=hypermedia --pkg=npm`을 실행한다. v7에서 Edge가 포함된 스타터는 `hypermedia`이며 JSON 전용 스타터는 `--kit=api`다. 프로젝트 파일을 받은 경우 루트 Git은 이미 있으므로 `git status --short`만 실행한다. 초기 폴더에 Git이 없을 때 `git init -b main`을 실행한다. `code --install-extension adonisjs.vscode-edge`로 Edge 문법 지원을 설치하고 VS Code에서 작업 영역 TypeScript 버전을 고른다.
+기초·중간 실습 앱은 `demo/`에서 시작한다. AdonisJS 7, Node.js 24+, npm 11+를 사용한다. 설치 전 `node -v`, `npm -v`, `git --version`을 확인한다. 새 앱을 시험할 때는 이 저장소 밖에서 `npm init adonisjs@latest scratch -- --kit=hypermedia --pkg=npm`을 실행한다. v7에서 Edge가 포함된 스타터는 `hypermedia`이며 JSON 전용 스타터는 `--kit=api`다. 프로젝트 파일을 받은 경우 루트 Git은 이미 있으므로 `git status --short`만 실행한다. 초기 폴더에 Git이 없을 때 `git init -b main`을 실행한다. `code --install-extension adonisjs.vscode-edge`로 Edge 문법 지원을 설치하고 VS Code에서 작업 영역 TypeScript 버전을 고른다.
 
 1. `cd demo`에서 `npm ci`로 잠금 버전을 설치하고 `Copy-Item .env.example .env`로 처음 한 번 파일을 복사한다.
 2. `node ace generate:key`로 앱 키를 생성하고 `node ace migration:run`으로 DB를 준비한다.
@@ -47,39 +47,17 @@ SESSION_DRIVER=cookie
 
 # Database (file name inside ./tmp)
 DB_DATABASE=db.sqlite3
-DB_CONNECTION=sqlite
-# DB_HOST=127.0.0.1
-# DB_PORT=5432
-# DB_USER=adonis
-# DB_PASSWORD=
-# DB_SSL=false
 CORS_ORIGIN=http://localhost:5173
-# MONGO_URL=mongodb://127.0.0.1:27017/adonis
-# GITHUB_CLIENT_ID=
-# GITHUB_CLIENT_SECRET=
-# STRIPE_SECRET_KEY=
-# STRIPE_PRICE_ID=
-# STRIPE_WEBHOOK_SECRET=
-# SMTP_URL=smtp://localhost:1025
-# MAIL_FROM=study@example.test
-AI_PROVIDER=mock
-# AI_MODEL=
-# OLLAMA_URL=http://127.0.0.1:11434
-# ANTHROPIC_API_KEY=
-AI_DAILY_TOKEN_LIMIT=12000
-POST_CACHE_MS=0
 ```
 
 소스의 첫 줄을 1행으로 센다.
 
-- 1행 이 파일에서 사용할 설정과 공용 구조를 선언한다.
-- 2–7행 Node 프로세스의 시간대·바인딩 IP·포트·실행 모드를 정한다.
-- 8–12행 로그 수준을 정하고 생성할 APP_KEY를 비워 둔다. APP_URL은 바깥에서 접속하는 주소다.
-- 13–15행 세션 저장 방식을 쿠키로 선택한다.
-- 16–22행 SQLite 기본 파일과 선택 가능한 네트워크 DB 변수를 정의한다.
-- 23행 API가 허용할 브라우저 출처의 개발 초기값을 지정한다.
-- 24–31행 외부 제공자별 연결 예제를 주석으로 보존한다.
-- 32–37행 기본 대역과 선택 가능한 외부 모델 값·사용량·목록 캐시 옵션을 나열한다.
+- 1행 이 파일의 첫 선언과 공통 설정을 정의한다.
+- 2–7행 Node 프로세스의 시간대, IP, 포트와 실행 환경을 정한다.
+- 8–12행 로그 수준, 생성할 APP_KEY, 브라우저가 접속하는 주소를 설정한다.
+- 13–15행 웹 세션의 기본 저장 방식을 쿠키로 선택한다.
+- 16행 demo/tmp 아래 SQLite 파일 이름을 정한다.
+- 17행 로컬 API가 허용할 브라우저 출처를 설정한다.
 
 ### [`.gitignore`](.gitignore)
 

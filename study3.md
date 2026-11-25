@@ -19,12 +19,6 @@
 ### [`demo/resources/js/board.js`](demo/resources/js/board.js)
 
 ```js
-import Alpine from 'alpinejs'
-import { z } from 'zod'
-
-Alpine.data('documentQuestion', () => ({ question: '' }))
-Alpine.start()
-
 const draft = document.querySelector('[data-draft]')
 const draftKey = 'adonis-board-draft'
 
@@ -65,69 +59,6 @@ if (draft) {
   })
 }
 
-const notice = document.querySelector('[data-board-notice]')
-if (notice) {
-  const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:'
-  const socket = new WebSocket(protocol + '//' + location.host + '/board-events')
-  socket.addEventListener('message', ({ data }) => {
-    if (data === 'board.changed') notice.textContent = '게시판이 갱신되었습니다. 새로고침해 확인하세요.'
-  })
-}
-
-const chat = document.querySelector('[data-chat]')
-if (chat) {
-  const question = z.string().trim().min(1).max(1000)
-  chat.addEventListener('submit', async (event) => {
-    event.preventDefault()
-    const output = document.querySelector('[data-answer]')
-    const button = chat.querySelector('button')
-    if (button.disabled) return
-    const form = new FormData(chat)
-    if (!question.safeParse(form.get('question')).success) {
-      output.textContent = '질문을 1~1,000자로 입력하세요.'
-      return
-    }
-    button.disabled = true
-    output.textContent = ''
-    try {
-      const response = await fetch(chat.action, {
-        method: 'POST',
-        headers: { Accept: 'text/event-stream, application/json' },
-        body: new URLSearchParams(form),
-        signal: AbortSignal.timeout(35_000),
-      })
-      if (!response.ok || !response.headers.get('content-type')?.startsWith('text/event-stream')) {
-        throw new Error('글 번호, 로그인 상태 또는 한도를 확인하세요.')
-      }
-      const reader = response.body.pipeThrough(new TextDecoderStream()).getReader()
-      let pending = ''
-      try {
-        while (true) {
-          const { value, done } = await reader.read()
-          if (done) throw new Error('AI 스트림이 일찍 종료되었습니다.')
-          pending += value
-          const frames = pending.split('\n\n')
-          pending = frames.pop()
-          for (const frame of frames) {
-            const raw = frame.slice('data: '.length)
-            if (raw === '[DONE]') return
-            const payload = JSON.parse(raw)
-            if (payload.error) throw new Error(payload.error.message)
-            if (payload.text) output.textContent += payload.text
-          }
-        }
-      } finally {
-        await reader.cancel().catch(() => {})
-        reader.releaseLock()
-      }
-    } catch (error) {
-      output.textContent = error.message
-    } finally {
-      button.disabled = false
-    }
-  })
-}
-
 document.addEventListener('submit', (event) => {
   if (event.defaultPrevented || event.target.method !== 'post') return
   if (event.target.dataset.submitting) {
@@ -148,19 +79,12 @@ window.addEventListener('pageshow', () => {
 
 소스의 첫 줄을 1행으로 센다.
 
-- 1–3행 Vite의 브라우저 모듈에서 Alpine 상태와 Zod 검증을 불러온다.
-- 4–6행 질문 문자열의 상태를 등록하고 페이지에서 Alpine을 시작한다.
-- 7–9행 게시판 글 폼과 브라우저 초안 저장 키를 찾는다.
-- 10–13행 등록 성공 화면에서 선택 기능인 저장소의 초안을 삭제한다.
-- 14–21행 입력 필드를 찾고 서버의 기존 폼 값이 비어 있을 때 초안을 복원한다.
-- 22–28행 입력할 때 제목과 본문을 브라우저 저장소에 갱신한다.
-- 29–46행 폼을 세션 서버에 보내고 성공·422·연결 오류를 출력 영역에 표시한다.
-- 47–55행 게시판 목록에서 같은 서버의 WebSocket에 연결해 변경 알림 문구를 표시한다.
-- 56–71행 작업실의 폼과 글자 검증을 연결하고 중복 제출을 차단한다.
-- 72–80행 CSRF가 포함된 폼을 URL 인코딩해 보내고 스트리밍 응답인지 확인한다.
-- 81–98행 UTF-8 스트림의 프레임 경계를 복원해 [DONE], 오류, 부분 텍스트를 분리한다.
-- 99–109행 완료·실패 시 스트림을 정리하고 버튼을 다시 활성화한다.
-- 110–125행 일반 POST 폼의 제출 버튼을 한 번만 동작시키고 뒤로 가기 복원 시 다시 활성화한다.
+- 1–3행 게시판 글 폼과 브라우저 초안 저장 키를 찾는다.
+- 4–7행 등록 성공 화면에서 선택 기능인 저장소의 초안을 삭제한다.
+- 8–15행 입력 필드를 찾고 서버의 기존 폼 값이 비어 있을 때 초안을 복원한다.
+- 16–22행 입력할 때 제목과 본문을 브라우저 저장소에 갱신한다.
+- 23–40행 폼을 세션 서버에 보내고 성공·422·연결 오류를 출력 영역에 표시한다.
+- 41–56행 일반 POST 폼의 제출 버튼을 한 번만 동작시키고 뒤로 가기 복원 시 다시 활성화한다.
 
 ### [`demo/app/models/comment.ts`](demo/app/models/comment.ts)
 

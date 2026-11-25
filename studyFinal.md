@@ -2,7 +2,7 @@
 
 ## ① 목표
 
-로그인 게시판을 PostgreSQL·외부 서비스·AI·자동 배포가 포함된 서비스로 완성한다.
+`project/`에서 PostgreSQL·외부 서비스·AI·자동 배포가 포함된 최종 앱을 완성한다.
 
 ## ② 📖 이론
 
@@ -29,14 +29,14 @@ UI, API, 데이터베이스, 외부 제공자의 책임을 분리해 사용자�
 
 ### 구현 순서
 
-1. [studyMidpoint](studyMidpoint.md)에서 구현한 게시판과 작성자 인가, 요청 테스트를 확인한다.
+1. [studyMidpoint](studyMidpoint.md)의 `demo/`에서 게시판의 동작을 확인한다. 루트에서 `cd project`로 이동해 [README](README.md)의 심화 완성본 실행 순서로 의존성, 별도 환경 파일·키, 마이그레이션을 준비한다. 기본 주소는 `http://localhost:3334`다.
 2. [study11](study11.md)에서 PostgreSQL 연결로 바꾸고 새 DB에 마이그레이션을 적용한다.
 3. [study13](study13.md)에 따라 Stripe 테스트 키, SMTP, GitHub OAuth를 환경 변수로 연결한다.
 4. [study17](study17.md)의 문서 업로드 및 알림을 확인하고 [study18](study18.md)의 AI 기록과 MCP를 실행한다.
 5. [study16](study16.md)의 Docker 이미지 및 GitHub Actions를 준비한다.
 6. [study14](study14.md) API 계약과 인증·보안, 백업 복원을 확인한다.
 
-### [`demo/app/services/ai_chat.ts`](demo/app/services/ai_chat.ts)
+### [`project/app/services/ai_chat.ts`](project/app/services/ai_chat.ts)
 
 ```ts
 import db from '@adonisjs/lucid/services/db'
@@ -104,14 +104,14 @@ export async function prepareChat(
 
 소스의 첫 줄을 1행으로 센다.
 
-- 1–7행 이 파일에서 사용하는 모듈과 데이터 타입을 불러오고 동작에 필요한 준비를 한다.
+- 1–7행 프레임워크 모듈과 이 파일에서 쓰는 타입을 불러온다.
 - 8–16행 문서를 조회하고 질문에 쓸 인용 근거와 모델 입력을 구성한다.
 - 17–33행 사용자와 UTC 날짜별로 예상 토큰을 조건부 DB 증가시킨다.
 - 34–41행 발췌를 반환하고 async iterator로 답변을 전달할 준비를 한다.
 - 42–49행 출력과 사용량을 모으고 크기를 제한하며 부분 문자열을 내보낸다.
 - 50–61행 완료된 답변, 발췌 번호, 토큰 수를 사용자별 히스토리로 저장한다.
 
-### [`demo/Dockerfile`](demo/Dockerfile)
+### [`project/Dockerfile`](project/Dockerfile)
 
 ```dockerfile
 FROM node:24-bookworm-slim AS build
@@ -148,7 +148,7 @@ CMD ["node", "bin/server.js"]
 name: adonis-study
 x-app: &app
   image: ${APP_IMAGE:-adonis-study:local}
-  env_file: demo/.env
+  env_file: project/.env
   environment:
     NODE_ENV: production
     HOST: 0.0.0.0
@@ -206,12 +206,12 @@ volumes:
 
 소스의 첫 줄을 1행으로 센다.
 
-- 1–16행 로컬 Docker 리소스 이름과 공통 운영 환경을 정의한다.
-- 17–23행 PostgreSQL 볼륨과 준비 확인을 구성한다.
-- 24–29행 DB 데이터를 컨테이너 교체 이후에도 보존한다.
+- 1–16행 Compose 이름과 project/.env, 운영 DB 연결을 설정한다.
+- 17–29행 PostgreSQL 볼륨과 준비 확인을 선언한다.
 - 30–35행 DB가 준비되면 운영 마이그레이션을 한 번 실행한다.
-- 36–47행 마이그레이션 성공 이후 앱을 띄우고 헬스를 확인한다.
-- 48–57행 메일 프로필을 켤 때 처리 워커가 별도 프로세스로 실행된다.
+- 36–47행 마이그레이션이 완료되면 완성 앱을 띄우고 헬스를 확인한다.
+- 48–55행 선택 프로필에서 SMTP 발송 워커를 실행한다.
+- 56–57행 DB 데이터를 컨테이너 밖에 보관한다.
 
 ## ④ 🔗 연동 포인트
 
@@ -244,7 +244,7 @@ Edge와 공개 API는 같은 Lucid 데이터에 연결된다. 앱이 운영 이�
 
 ### 최종 회고
 
-게시판의 v1 계약과 작성자 확인을 유지하면서 데이터베이스와 모델 제공자를 교체할 수 있었다. 메일 발송의 외부 전달 보장과 다중 프로세스의 알림 전파는 운영 규모가 커질 때 보강한다.
+`project/`를 별도로 실행하면서 게시판의 v1 계약과 작성자 확인을 유지하고 데이터베이스와 모델 제공자를 전환할 수 있었다. 메일 발송의 외부 전달 보장과 다중 프로세스의 알림 전파는 운영 규모가 커질 때 보강한다.
 
 ### 미반영 항목
 

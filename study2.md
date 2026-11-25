@@ -26,8 +26,7 @@ import { manageContent } from '#abilities/board'
 import Post from '#models/post'
 import Comment from '#models/comment'
 import { parseId, parseList } from '#services/board_contract'
-import { invalidatePostLists, listPosts, postQuery } from '#services/posts'
-import { publishBoardChange } from '#services/board_events'
+import { listPosts, postQuery } from '#services/posts'
 import { createComment, createPost } from '#validators/board'
 
 export default class BoardController {
@@ -61,8 +60,6 @@ export default class BoardController {
       userId: auth.getUserOrFail().id,
     })
     session.flash('draftSaved', true)
-    invalidatePostLists()
-    publishBoardChange()
     return response.redirect().toPath('/board/' + post.id)
   }
 
@@ -71,8 +68,6 @@ export default class BoardController {
     await new Bouncer(() => auth.getUserOrFail()).authorize(manageContent, post)
     const { title, body } = await request.validateUsing(createPost)
     await post.merge({ title, body }).save()
-    invalidatePostLists()
-    publishBoardChange()
     return response.redirect().toPath('/board/' + post.id)
   }
 
@@ -80,8 +75,6 @@ export default class BoardController {
     const post = await Post.findOrFail(parseId(params.id))
     await new Bouncer(() => auth.getUserOrFail()).authorize(manageContent, post)
     await post.delete()
-    invalidatePostLists()
-    publishBoardChange()
     return response.redirect().toPath('/board')
   }
 
@@ -89,8 +82,6 @@ export default class BoardController {
     const post = await Post.findOrFail(parseId(params.id))
     const { body } = await request.validateUsing(createComment)
     await post.related('comments').create({ body, userId: auth.getUserOrFail().id })
-    invalidatePostLists()
-    publishBoardChange()
     return response.redirect().toPath('/board/' + post.id)
   }
 
@@ -98,8 +89,6 @@ export default class BoardController {
     const comment = await Comment.findOrFail(parseId(params.id))
     await new Bouncer(() => auth.getUserOrFail()).authorize(manageContent, comment)
     await comment.delete()
-    invalidatePostLists()
-    publishBoardChange()
     return response.redirect().toPath('/board/' + comment.postId)
   }
 
@@ -117,15 +106,15 @@ export default class BoardController {
 
 소스의 첫 줄을 1행으로 센다.
 
-- 1–12행 이 파일에서 사용하는 모듈과 데이터 타입을 불러오고 동작에 필요한 준비를 한다.
-- 13–17행 목록 쿼리를 해석하고 공용 서비스 결과를 Edge로 렌더링한다.
-- 18–33행 동적 id로 글과 댓글을 조회하고 Bouncer로 버튼의 표시 조건을 판단한다.
-- 34–47행 Vine 검사 후 로그인 사용자의 글을 저장하고 초안 삭제 신호를 설정한다.
-- 48–57행 DB에서 글을 찾고 작성자 권한이 허용되면 내용을 갱신한다.
-- 58–66행 작성자 권한을 확인한 글을 삭제하고 목록으로 이동한다.
-- 67–75행 존재하는 글의 관계에 로그인 사용자가 새 댓글을 추가한다.
-- 76–84행 댓글 작성자 확인 후 삭제하고 해당 글로 돌아간다.
-- 85–94행 실제 저장 없이 같은 Vine 스키마를 적용해 200 또는 422를 준다.
+- 1–11행 프레임워크 모듈과 이 파일에서 쓰는 타입을 불러온다.
+- 12–16행 목록 쿼리를 해석하고 공용 서비스 결과를 Edge로 렌더링한다.
+- 17–32행 동적 id로 글과 댓글을 조회하고 Bouncer로 버튼의 표시 조건을 판단한다.
+- 33–44행 Vine 검사 후 로그인 사용자의 글을 저장하고 초안 삭제 신호를 설정한다.
+- 45–52행 DB에서 글을 찾고 작성자 권한이 허용되면 내용을 갱신한다.
+- 53–59행 작성자 권한을 확인한 글을 삭제하고 목록으로 이동한다.
+- 60–66행 존재하는 글의 관계에 로그인 사용자가 새 댓글을 추가한다.
+- 67–73행 댓글 작성자 확인 후 삭제하고 해당 글로 돌아간다.
+- 74–83행 실제 저장 없이 같은 Vine 스키마를 적용해 200 또는 422를 준다.
 
 ### [`demo/app/models/post.ts`](demo/app/models/post.ts)
 
