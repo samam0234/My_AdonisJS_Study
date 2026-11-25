@@ -1,0 +1,38 @@
+@component('components/layouts/board', { title: '게시판' })
+  <h1>게시판</h1>
+  <form action="/board" method="get" class="study-search">
+    <label>검색 <input name="q" value="{{ meta.q ?? '' }}" maxlength="200"></label>
+    <button>검색</button>
+  </form>
+  @if(auth.user)
+    <form action="/board" method="post" data-draft data-find-errors>
+      {{ csrfField() }}
+      <label>제목 <input name="title" value="{{ old('title', '') }}" maxlength="200" required></label>
+      @inputError('title')
+        <p role="alert">{{ $message }}</p>
+      @end
+      <label>본문 <textarea name="body" maxlength="20000" required>{{ old('body', '') }}</textarea></label>
+      @inputError('body')
+        <p role="alert">{{ $message }}</p>
+      @end
+      <button type="button" data-validate>입력 확인</button>
+      <button type="submit">글 등록</button>
+      <output aria-live="polite"></output>
+    </form>
+  @endif
+  <p data-board-notice role="status"></p>
+  <p>전체 {{ meta.total }}개</p>
+  <ul>
+    @each(post in data)
+      <li><a href="/board/{{ post.id }}">{{ post.title }}</a> · {{ post.author.nickname }} · 댓글 {{ post.commentCount }}</li>
+    @end
+  </ul>
+  <nav aria-label="페이지 이동">
+    @if(meta.page > 1)
+      <a href="{{ urlFor('board.index', {}, { qs: { page: meta.page - 1, q: meta.q, limit: meta.limit } }) }}">이전</a>
+    @endif
+    @if(meta.page < meta.totalPages)
+      <a href="{{ urlFor('board.index', {}, { qs: { page: meta.page + 1, q: meta.q, limit: meta.limit } }) }}">다음</a>
+    @endif
+  </nav>
+@end
