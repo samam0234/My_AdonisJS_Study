@@ -6,16 +6,35 @@
 
 ## ② 📖 이론
 
-기능은 게시글·댓글 CRUD, 권한 검사, 문서 업로드와 발췌 기반 답변, 개인 질문 기록, Mongo 초안, 공개 변경 알림, 테스트 결제·메일·OAuth다. 서버의 경계는 화면·API·작업·외부 자격 증명으로 나뉜다. 공통 API는 사용자와 호출 환경이 바뀌어도 같은 입력·출력 계약을 사용한다.
+### 기능 목록
+
+- 로그인 게시판, 게시글·댓글 CRUD, 작성자 인가와 공통 API v1
+- 문서 업로드와 발췌 기반 AI 답변, 사용자별 기록, MongoDB 초안
+- WebSocket 변경 알림, Stripe 테스트 결제, 메일 작업, GitHub OAuth
+- 린트·빌드·테스트·Docker 이미지·SHA 기반 자동 배포
+
+### 연동 구성도
+
+    Edge/Alpine ↔ AdonisJS → Lucid → PostgreSQL
+    브라우저 ← WebSocket 알림 · SSE 답변 → AdonisJS → Anthropic/Ollama
+    MCP 클라이언트 → stdio 서버 → AdonisJS 공개 API
+    Stripe → 서명 웹훅 → 결제 영수증 / 워커 → SMTP
+    GitHub Actions → GHCR SHA 이미지 → Docker Compose
+
+UI, API, 데이터베이스, 외부 제공자의 책임을 분리해 사용자는 같은 게시판 계약으로 접속할 수 있다.
 
 [공식·원문 참고](https://app.notion.com/p/41fd7dec5e2e81b1a18fcf3a82d793d4)
 
 ## ③ 🛠️ 실기
 
-구현 순서는 ① midpoint 게시판과 테스트 준비 ② PostgreSQL 환경으로 바꾸고 새 DB 마이그레이션 ③ SMTP·Stripe 테스트 키·GitHub OAuth 연결 ④ 문서 업로드·검색·AI 기록 및 MCP 실행 ⑤ Docker 이미지와 GitHub Actions 배포 구성 ⑥ API, 보안, 백업 복원 점검이다. 환경별 시크릿은 [study16](study16.md), API·AI 요청은 [study14](study14.md)와 [study18](study18.md)을 따른다.
+### 구현 순서
 
-1. 릴리스 점검을 완료하면 [README](README.md)의 검증 명령으로 재현할 수 있다.
-2. Notion 원문 체크를 모두 번호별 문서에 반영했다. 비교하며 학습하기와 다른 프레임워크 예제를 옮겨 나란히 두는 활동은 사용자 지정 범위에 따라 이번 실습에서 제외했다.
+1. [studyMidpoint](studyMidpoint.md)에서 구현한 게시판과 작성자 인가, 요청 테스트를 확인한다.
+2. [study11](study11.md)에서 PostgreSQL 연결로 바꾸고 새 DB에 마이그레이션을 적용한다.
+3. [study13](study13.md)에 따라 Stripe 테스트 키, SMTP, GitHub OAuth를 환경 변수로 연결한다.
+4. [study17](study17.md)의 문서 업로드 및 알림을 확인하고 [study18](study18.md)의 AI 기록과 MCP를 실행한다.
+5. [study16](study16.md)의 Docker 이미지 및 GitHub Actions를 준비한다.
+6. [study14](study14.md) API 계약과 인증·보안, 백업 복원을 확인한다.
 
 ### [`demo/app/services/ai_chat.ts`](demo/app/services/ai_chat.ts)
 
@@ -196,15 +215,7 @@ volumes:
 
 ## ④ 🔗 연동 포인트
 
-구성도
-
-    Edge/Alpine ↔ AdonisJS → Lucid → PostgreSQL
-    브라우저 ← WebSocket 알림 · SSE 답변 → AdonisJS → Anthropic/Ollama
-    MCP 클라이언트 → stdio 서버 → AdonisJS 공개 API
-    Stripe → 서명 웹훅 → 결제 영수증 / 워커 → SMTP
-    GitHub Actions → GHCR SHA 이미지 → Docker Compose
-
-최종 회고는 데이터 저장소 교체 뒤 유지된 API 계약, 웹 세션과 Bearer의 인증 경계, 외부 계정 점검과 로컬에서 재현한 범위를 기록한다.
+Edge와 공개 API는 같은 Lucid 데이터에 연결된다. 앱이 운영 이미지로 이동해도 브라우저 세션, Bearer, 웹훅 검증은 각각의 요청 경계를 지킨다. 이미지 배포 뒤 DB 마이그레이션과 `/health`를 확인하고 외부 계정과 모델은 환경별로 연결한다.
 
 ## ⑤ 오류 노트
 
@@ -221,6 +232,8 @@ volumes:
 3. 백업을 새 DB에 복원하고 기록과 통계를 비교한다.
 
 ## ⑦ ☐ 체크리스트
+
+### 배포 체크리스트
 
 - [ ] PostgreSQL·HTTPS·시크릿·수명·백업 복원 확인
 - [ ] 배포 SHA 버전, 헬스, OpenAPI, 로그인·API·WS·SSE 검증
